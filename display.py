@@ -32,7 +32,7 @@ def plot_3d_scatters_for_clusters(clusters, pred):
     # センターカラーの取得
     colors = []
     for n in range(pred.n_clusters):
-        color = pred.cluster_centers_[n] / 255
+        color = pred.cluster_centers_[n][:3] / 255
         colors.append(color)
     # プロット
     fig = plt.figure(figsize=(10,6),facecolor="w")
