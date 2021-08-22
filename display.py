@@ -51,3 +51,37 @@ def plot_3d_scatters_for_clusters(clusters):
     for n in range(n_clusters):
         ax.plot(clusters[n][:,0], clusters[n][:,1], clusters[n][:,2], "o", color=colors[n], ms=4, mew=0.5)
     plt.show()
+
+def display_distributions(data, filepath="out.jpg", show=True, cluster_centers=None):
+    fig = plt.figure(figsize=(12,6),facecolor="w")
+    ax = fig.add_subplot(1,1,1)
+    for i in range(data.shape[1]):
+        ax.hist(data[:,i], bins = 100, alpha = 0.5)        
+    ax.axvline(x = data.mean(), 
+               color = 'green', 
+               alpha = 0.8, 
+               linestyle = '--', 
+               label = 'Mean')
+    ax.axvline(x = data.mean() - 2*data.std(ddof=1), 
+               color = 'orange', 
+               alpha = 0.8, 
+               linestyle = ':', 
+               label = '2σ')
+    ax.axvline(x = data.mean() + 2*data.std(ddof=1), 
+               color = 'orange', 
+               alpha = 0.8, 
+               linestyle = ':')
+    if cluster_centers is not None:
+        for i in range(cluster_centers.shape[1]):
+            for k in range(len(cluster_centers)):
+                ax.scatter(cluster_centers[k,i],-1)
+                ax.annotate(k,xy=(cluster_centers[k,i],-2))
+    ax.set_title("Distribution of Thermal pixel values")
+    ax.set_xlabel('pxil values')
+    ax.set_ylabel('freq')
+    ax.legend(loc='upper right')
+    plt.savefig(filepath)
+    if show: 
+        plt.show()
+    else:
+        plt.close()
