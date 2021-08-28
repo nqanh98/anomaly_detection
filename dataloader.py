@@ -18,7 +18,6 @@ def get_img_files(dir_path="./images/modules", gray=True):
     return img_files
 
 class ThermalData:
-
     def __init__(self, thermal_img_files):
         self.transforms(thermal_img_files)
         self.transforms_with_index(thermal_img_files)

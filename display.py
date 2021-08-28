@@ -87,3 +87,22 @@ def display_distributions(data, filepath="out.jpg", show=True, cluster_centers=N
     else:
         plt.close()
 
+def display_modules(img, img_gray=None, img_clustered=None, img_colored=None, vmin=0, vmax=255):
+    fig = plt.figure(figsize=(12,4),facecolor="w")
+    ax1 = fig.add_subplot(141)
+    ax1.imshow(img, vmin=vmin, vmax=vmax)
+    ax1.set_title("Original")
+    if img_gray is not None:
+        ax2 = fig.add_subplot(142)
+        ax2.imshow(img_gray, vmin=vmin, vmax=vmax)
+        ax2.set_title("Gray")
+    if img_clustered is not None:
+        ax3 = fig.add_subplot(143)
+        ax3.imshow(img_clustered, vmin=vmin, vmax=vmax)
+        ax3.set_title("Clustered")        
+    if img_colored is not None:
+        ax4 = fig.add_subplot(144)
+        ax4.imshow(img_colored, vmin=vmin, vmax=vmax)
+        ax4.set_title("Colored")        
+    plt.show()
+
