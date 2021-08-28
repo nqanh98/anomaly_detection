@@ -31,8 +31,10 @@ class ThermalData:
         self.temperature = temperature
         self.all_temperature = all_temperature        
         # -- 1d scaled flatten thermal data --
-        sscaler = preprocessing.StandardScaler()        
+        sscaler = preprocessing.StandardScaler()
+        #sscaler.fit(all_temperature)
         scaled_temperature = {
+            #k: sscaler.transform(v.reshape(-1,v.shape[2])) for k, v in thermal_img_files.items()
             k: sscaler.fit_transform(v.reshape(-1,v.shape[2])) for k, v in thermal_img_files.items()
         }
         scaled_all_temperature = np.concatenate([*scaled_temperature.values()])
@@ -53,9 +55,12 @@ class ThermalData:
             k: self.get_data_with_index(v) for k, v in thermal_img_files.items()
         }
         self.temperature_with_index = temperature_with_index
+        all_temperature_with_index = np.concatenate([*temperature_with_index.values()])
         # -- 1d scaled flatten thermal data with index --
-        sscaler = preprocessing.StandardScaler()        
+        sscaler = preprocessing.StandardScaler()
+        #sscaler.fit(all_temperature_with_index)
         scaled_temperature_with_index = {
+            #k: sscaler.transform(self.get_data_with_index(v)) for k, v in thermal_img_files.items()
             k: sscaler.fit_transform(self.get_data_with_index(v)) for k, v in thermal_img_files.items()
         }
         self.scaled_temperature_with_index = scaled_temperature_with_index
