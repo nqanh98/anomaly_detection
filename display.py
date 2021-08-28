@@ -53,7 +53,8 @@ def plot_3d_scatters_for_clusters(clusters):
     plt.show()
 
 def display_distributions(data, filepath="out.jpg", show=True, cluster_centers=None):
-    fig = plt.figure(figsize=(12,6),facecolor="w")
+    fig = plt.figure(figsize=(12,4),facecolor="w")
+    #fig = plt.figure(figsize=(16,8),facecolor="w")
     ax = fig.add_subplot(1,1,1)
     for i in range(data.shape[1]):
         ax.hist(data[:,i], bins = 100, alpha = 0.5)        
@@ -85,3 +86,4 @@ def display_distributions(data, filepath="out.jpg", show=True, cluster_centers=N
         plt.show()
     else:
         plt.close()
+
