@@ -38,3 +38,15 @@ class AnoGMM:
 
     def predict(self,data):
         return self.model.predict(data)
+
+def detect_module_type(cluster_types, weights):
+    hot_counts = cluster_types.count("High")
+    if weights.mean() > 1.0/3.0:
+        module_type = "Cluster-Hotspots"
+    elif hot_counts == 1:
+        module_type = "Single-Hotspot"
+    elif hot_counts >= 2:
+        module_type = "Multi-Hotspots"
+    else:
+        module_type = "Normal"
+    return module_type    
