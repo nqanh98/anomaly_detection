@@ -1,8 +1,8 @@
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-import matplotlib.cm as cm
-
 import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.cm as cm
+from mpl_toolkits.mplot3d import Axes3D
+from scipy import stats
 
 def plot_2d_scatters_for_clusters(clusters):
     # センターカラーの取得
@@ -52,35 +52,49 @@ def plot_3d_scatters_for_clusters(clusters):
         ax.plot(clusters[n][:,0], clusters[n][:,1], clusters[n][:,2], "o", color=colors[n], ms=4, mew=0.5)
     plt.show()
 
-def display_distributions(data, filepath="out.jpg", show=True, cluster_centers=None):
+def display_distributions(data, filepath="out.jpg", show=True, cluster_centers=None, gmm=None):
     fig = plt.figure(figsize=(12,4),facecolor="w")
-    #fig = plt.figure(figsize=(16,8),facecolor="w")
-    ax = fig.add_subplot(1,1,1)
+    ax1 = fig.add_subplot(1,1,1)
+    # -- distributions --
     for i in range(data.shape[1]):
-        ax.hist(data[:,i], bins = 100, alpha = 0.5)        
-    ax.axvline(x = data.mean(), 
-               color = 'green', 
-               alpha = 0.8, 
-               linestyle = '--', 
-               label = 'Mean')
-    ax.axvline(x = data.mean() - 2*data.std(ddof=1), 
-               color = 'orange', 
-               alpha = 0.8, 
-               linestyle = ':', 
-               label = '2σ')
-    ax.axvline(x = data.mean() + 2*data.std(ddof=1), 
-               color = 'orange', 
-               alpha = 0.8, 
-               linestyle = ':')
+        ax1.hist(data[:,i], bins = 100, alpha = 0.5)
+    # -- mean and std -- 
+    ax1.axvline(x = data.mean(), 
+                color = 'green', 
+                alpha = 0.8, 
+                linestyle = '--', 
+                label = 'Mean')
+    ax1.axvline(x = data.mean() - 2*data.std(ddof=1), 
+                color = 'orange', 
+                alpha = 0.8, 
+                linestyle = ':', 
+                label = '2σ')
+    ax1.axvline(x = data.mean() + 2*data.std(ddof=1), 
+                color = 'orange', 
+                alpha = 0.8, 
+                linestyle = ':')
+    # -- cluster centers --
     if cluster_centers is not None:
         for i in range(cluster_centers.shape[1]):
             for k in range(len(cluster_centers)):
-                ax.scatter(cluster_centers[k,i],-1)
-                ax.annotate(k,xy=(cluster_centers[k,i],-2))
-    ax.set_title("Distribution of Thermal pixel values")
-    ax.set_xlabel('pxil values')
-    ax.set_ylabel('freq')
-    ax.legend(loc='upper right')
+                ax1.scatter(cluster_centers[k,i],-1)
+                ax1.annotate(k,xy=(cluster_centers[k,i],-2))
+    # -- config ax1 --
+    ax1.set_title("Distribution of Thermal pixel values")
+    ax1.set_xlabel('pxil values')
+    ax1.set_ylabel('freq')
+    ax1.legend(loc='upper left')
+    # -- gmm model --
+    if gmm is not None:
+        x = np.linspace(0, 255, 300)
+        ax2 = ax1.twinx()
+        for idx, c in gmm.index2class.items(): 
+            gd = stats.norm.pdf(x, gmm.model.means_[idx, -1], np.sqrt(gmm.model.covariances_[idx]))
+            ax2.plot(x, gmm.model.weights_[idx] * gd, label=c)
+        # -- config ax2 --
+        ax2.legend(loc='upper right')
+        ax2.set_ylabel('prob')
+    # -- outputs --
     plt.savefig(filepath)
     if show: 
         plt.show()

@@ -26,14 +26,16 @@ class AnoGMM:
 
     def display(self):
         fig = plt.figure(figsize=(12,4),facecolor="w")
-        ax1 = fig.add_subplot(1,1,1)
+        ax = fig.add_subplot(1,1,1)
         #x = np.linspace(-6, 2, 300)
         x = np.linspace(0, 255, 300)
         gd = []
         for idx, c in self.index2class.items():
             gd = stats.norm.pdf(x, self.model.means_[idx, -1], np.sqrt(self.model.covariances_[idx]))
-            plt.plot(x, self.model.weights_[idx] * gd, label=c)
-        plt.legend()
+            ax.plot(x, self.model.weights_[idx] * gd, label=c)
+        ax.legend(loc='upper left')
+        ax.set_xlabel('pxil values')
+        ax.set_ylabel('prob')
         plt.show()
 
     def predict(self,data):
