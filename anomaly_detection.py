@@ -41,14 +41,21 @@ class AnoGMM:
     def predict(self,data):
         return self.model.predict(data)
 
+def max_num_hotspots_in_long_axis(weights):
+    axis = np.argmax(weights.shape)
+    return max(np.sum(weights,axis=axis))
+    
 def detect_module_type(cluster_types, weights):
-    hot_counts = cluster_types.count("Very High")    
-    if weights.mean() > 1.0/3.0:
-        module_type = "Cluster-Hotspots"
+    hot_counts = cluster_types.count("Very High")
+    max_num = max_num_hotspots_in_long_axis(weights)
+    if weights.mean() >= 0.8:
+        module_type = "Module-Anomaly"        
+    elif weights.mean() >= 1.0/3.0 and max_num == max(weights.shape):
+        module_type = "Cluster-Anomaly"
+    elif hot_counts >= 2:
+        module_type = "Multi-Hotspots"        
     elif hot_counts == 1:
         module_type = "Single-Hotspot"
-    elif hot_counts >= 2:
-        module_type = "Multi-Hotspots"
     else:
         module_type = "Normal"
     return module_type    
