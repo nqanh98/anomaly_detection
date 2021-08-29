@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from scipy import stats
 from sklearn.mixture import GaussianMixture
 
-temperature_classes = ["High", "Medium", "Low", "Exception"]
+temperature_classes = ["Very High", "High", "Medium", "Low", "Exception"]
 
 class AnoGMM:
     def __init__(self, data):
@@ -42,7 +42,7 @@ class AnoGMM:
         return self.model.predict(data)
 
 def detect_module_type(cluster_types, weights):
-    hot_counts = cluster_types.count("High")
+    hot_counts = cluster_types.count("Very High")    
     if weights.mean() > 1.0/3.0:
         module_type = "Cluster-Hotspots"
     elif hot_counts == 1:
