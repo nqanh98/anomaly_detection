@@ -34,6 +34,7 @@ class AnoGMM:
             gd = stats.norm.pdf(x, self.model.means_[idx, -1], np.sqrt(self.model.covariances_[idx]))
             ax.plot(x, self.model.weights_[idx] * gd, label=c)
         ax.legend(loc='upper left')
+        #ax.legend(loc='upper right')
         ax.set_xlabel('pxil values')
         ax.set_ylabel('prob')
         plt.show()

@@ -84,6 +84,7 @@ def display_distributions(data, filepath="out.jpg", show=True, cluster_centers=N
     ax1.set_xlabel('pxil values')
     ax1.set_ylabel('freq')
     ax1.legend(loc='upper left')
+    #ax1.legend(loc='upper right')
     # -- gmm model --
     if gmm is not None:
         x = np.linspace(0, 255, 300)
