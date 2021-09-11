@@ -14,7 +14,7 @@ class TemperatureClusters:
             self.model = self.get_dbscan_model(data)
             self.n_clusters = max(self.model.labels_)+1
         elif method == "star":
-            self.model = self.get_start_model(data)
+            self.model = self.get_star_model(data)
             self.n_clusters = max(self.model.labels_)+1            
         else:
             self.n_clusters = n_clusters
