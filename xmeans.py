@@ -46,8 +46,8 @@ class XMeans:
         clusters : list-like object, which contains instances of 'XMeans.Cluster'
         """
         for cluster in clusters:
-            if cluster.size <= 8:
-            #if cluster.size <= 3:                
+            #if cluster.size <= 8:
+            if cluster.size <= 3:                
                 self.__clusters.append(cluster)
                 continue
 
