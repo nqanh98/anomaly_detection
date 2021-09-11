@@ -87,7 +87,8 @@ def display_distributions(data, filepath="out.jpg", show=True, cluster_centers=N
     #ax1.legend(loc='upper right')
     # -- gmm model --
     if gmm is not None:
-        x = np.linspace(0, 255, 300)
+        #x = np.linspace(0, 255, 300)
+        x = np.linspace(data.min(), data.max(), 300)
         ax2 = ax1.twinx()
         for idx, c in gmm.index2class.items(): 
             gd = stats.norm.pdf(x, gmm.model.means_[idx, -1], np.sqrt(gmm.model.covariances_[idx]))

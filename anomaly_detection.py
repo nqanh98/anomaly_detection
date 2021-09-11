@@ -7,6 +7,7 @@ temperature_classes = ["Very High", "High", "Medium", "Low", "Exception"]
 
 class AnoGMM:
     def __init__(self, data):
+        self.data = data
         self.model = self.get_gmm_model(data)
         self.index2class = self.get_index2class()
         
@@ -27,8 +28,7 @@ class AnoGMM:
     def display(self):
         fig = plt.figure(figsize=(12,4),facecolor="w")
         ax = fig.add_subplot(1,1,1)
-        #x = np.linspace(-6, 2, 300)
-        x = np.linspace(0, 255, 300)
+        x = np.linspace(self.data.min(), self.data.max(), 300)        
         gd = []
         for idx, c in self.index2class.items():
             gd = stats.norm.pdf(x, self.model.means_[idx, -1], np.sqrt(self.model.covariances_[idx]))
@@ -42,16 +42,16 @@ class AnoGMM:
     def predict(self,data):
         return self.model.predict(data)
 
-def max_num_hotspots_in_long_axis(weights):
-    axis = np.argmax(weights.shape)
-    return max(np.sum(weights,axis=axis))
+def get_max_num_hot_pixel_in_long_axis(hot_pixels):
+    axis = np.argmax(hot_pixels.shape)
+    return max(np.sum(hot_pixels,axis=axis))
     
-def detect_module_type(cluster_types, weights):
-    hot_counts = cluster_types.count("Very High")
-    max_num = max_num_hotspots_in_long_axis(weights)
-    if weights.mean() >= 0.8:
+def detect_module_type(hot_clusters, hot_pixels):
+    hot_counts = sum(hot_clusters)
+    n_hot_pixel_in_long_axis = get_max_num_hot_pixel_in_long_axis(hot_pixels)
+    if hot_pixels.mean() >= 0.8:
         module_type = "Module-Anomaly"        
-    elif weights.mean() >= 1.0/3.0 and max_num == max(weights.shape):
+    elif hot_pixels.mean() >= 1.0/3.0 and n_hot_pixel_in_long_axis == max(hot_pixels.shape):
         module_type = "Cluster-Anomaly"
     elif hot_counts >= 2:
         module_type = "Multi-Hotspots"        
