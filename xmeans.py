@@ -46,7 +46,8 @@ class XMeans:
         clusters : list-like object, which contains instances of 'XMeans.Cluster'
         """
         for cluster in clusters:
-            if cluster.size <= 3:
+            if cluster.size <= 8:
+            #if cluster.size <= 3:                
                 self.__clusters.append(cluster)
                 continue
 
@@ -91,6 +92,7 @@ class XMeans:
 
         def log_likelihood(self):
             #return sum(stats.multivariate_normal.logpdf(x, self.center, self.cov) for x in self.data)
+            #print(self.data)
             return sum(stats.multivariate_normal.logpdf(x, self.center, self.cov, allow_singular=True) for x in self.data)
 
         def bic(self):
