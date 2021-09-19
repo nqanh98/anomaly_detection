@@ -1,8 +1,10 @@
 
 import numpy as np
+import pandas as pd
 import cv2
 import matplotlib.pyplot as plt
 import glob
+from sklearn.cluster import DBSCAN
 
 def get_thermal_data(thermal_npdat_path):
     thermal_npdat_list = glob.glob(thermal_npdat_path + "/*.JPG")
@@ -78,7 +80,6 @@ def show_img(img_dict, cmap=None, figsize=(12,12)):
         else:
             ax[i].imshow(v)
         ax[i].set_title(k)
-    fig.tight_layout()      
     fig.show()
 
 def normalize(img, lower_lim_pix_val, upper_lim_pix_val, show=False):
@@ -237,6 +238,12 @@ def get_img_contours(img, panel_contours, color=False):
     if color: img_con = cv2.cvtColor(img_con, cv2.COLOR_GRAY2BGR)
     return img_con
 
+def get_target_contours(img, panel_contours, anomaly_csv_path):
+    df = pd.read_csv(anomaly_csv_path)
+    anomaly_module_index = df.applymap(lambda x: np.int(x.split(".")[0]))
+    target_contours = np.array(panel_contours)[anomaly_module_index.values.flatten()]
+    return target_contours
+
 def add_index(img, panel_contours):
     if len(img.shape) < 3:
         img_colored = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)        
@@ -307,21 +314,60 @@ def extract_modules(img, panel_contours):
         plt.imshow(img_box,cmap='gray')
         plt.show()
 
+def get_scaled_centers(target_contours):
+    centers = np.array( [c.mean(axis=0) for c in target_contours] )
+    l = [ max(cv2.minAreaRect(c)[1]) for c in target_contours]
+    scaled_centers = centers / np.mean(l) # coordinate in module-scaled space
+    return scaled_centers
+
+def get_cluster_labels(target_contours,show=False):
+    scaled_centers = get_scaled_centers(target_contours)
+    model = DBSCAN(eps=1.5, min_samples=3).fit(scaled_centers) # eps: hyper parameter (1.5 module size)
+    if show:
+        cmap = plt.get_cmap("tab10")
+        plt.scatter(scaled_centers[:,0],-scaled_centers[:,1], color=cmap(model.labels_+1))
+        plt.show()
+    return model.labels_
+        
 if __name__ == "__main__":
 
-    thermal_npdat_path = "./hokuto/thermal"
-    img_path = './hokuto/thermal/DJI_0123_R.JPG'
-    img_org = cv2.imread(img_path, 0)
-    
-    img_averaged = apply_filters(img_org, thermal_npdat_path)
-    
-    # 輪郭の検出
-    contours, hierarchy = cv2.findContours(
-        img_averaged.astype(np.uint8), cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+    # 分析対象の指定
+    input_img_path = '../ModuleExtraction/hokuto/thermal/DJI_0123_R.JPG'
+    thermal_npdat_path = "../ModuleExtraction/hokuto/thermal"
+    anomaly_csv_path = "./modules_Module-Anomaly.csv"
 
-    # パネル情報の抽出
+    # フィルタの適用    
+    img_org = cv2.imread(input_img_path, 0)
+    img_filtered = apply_filters(img_org, thermal_npdat_path)
+    print("# done: apply filters")
+    
+    # モジュール輪郭の検出
+    contours, hierarchy = cv2.findContours(
+        img_filtered.astype(np.uint8), cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
     panel_contours = get_panel_contours(contours)
-    img_con = get_img_contours(img_org, panel_contours, index=True)
-    img_index = add_index(img, panel_contours)
-    show_img({"modules":img_con},cmap="gray")
+    print("# done: extract module contours")    
+    
+    # モジュール情報の表示    
+    img_con = get_img_contours(img_org, panel_contours)
+    img_con_index = add_index(img_con, panel_contours)
+    #show_img({"extracted modules":img_con_index},cmap="gray",figsize=(30,30))
+    img_mask = cv2.bitwise_and(img_org, img_con)
+    img_mask_index = add_index(img_mask, panel_contours)
+    #show_img({"extracted modules (overlay)":img_mask_index},cmap="gray",figsize=(30,30))
+    print("# done: display modules")    
+
+    # ハイライト情報の表示
+    target_contours = get_target_contours(img_con, panel_contours, anomaly_csv_path)
+    img_filled = fill_target_panels(img_con, target_contours)
+    img_filled_index = add_index(img_filled, panel_contours)
+    #show_img({"highlighted modules":img_filled_index},cmap="gray",figsize=(30,30))
+    print("# done: display highlighed module")
+
+    # ハイライトモジュールのクラスタ情報を取得
+    labels = get_cluster_labels(target_contours)
+    img_sa = fill_target_panels(img_con, target_contours[labels>=0])
+    img_sa_index = add_index(img_filled, panel_contours)
+    #show_img({"string-anomaly modules":img_sa},cmap="gray",figsize=(30,30))
+    print("# done: display string-anomaly modules")
+    
     
