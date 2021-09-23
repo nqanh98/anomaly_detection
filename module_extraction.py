@@ -256,19 +256,19 @@ class Modules():
         else:
             return img_con
 
-    def get_img_target_contours(self, img, target_contours, index=False):
-        img_filled = self.fill_target_panels(img, target_contours)
+    def get_img_target_contours(self, img, target_contours, index=False, color=(0,255,255)):
+        img_filled = self.fill_target_panels(img, target_contours, color)
         if index:
             return self.add_index(img_filled)
         else:
             return img_filled
         
-    def fill_target_panels(self, img, target_contours):
+    def fill_target_panels(self, img, target_contours, color):
         if len(img.shape) < 3:
             img_colored = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
         else:
             img_colored = img
-        img_filled = cv2.fillPoly(img_colored, target_contours, (0,255,255))
+        img_filled = cv2.fillPoly(img_colored, target_contours, color)
         return img_filled
 
     def add_index(self, img):
@@ -384,5 +384,3 @@ if __name__ == "__main__":
     show_img({"highlighted modules":img_filled_index},cmap="gray",figsize=(30,30))
     show_img({"string-anomaly modules":img_sta_index},cmap="gray",figsize=(30,30))
     print("# done: display highlighed module")
-    
-    
