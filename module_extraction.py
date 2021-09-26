@@ -5,6 +5,7 @@ import cv2
 import matplotlib.pyplot as plt
 import glob
 from sklearn.cluster import DBSCAN
+import json
 
 def get_thermal_data(thermal_npdat_path):
     thermal_npdat_list = glob.glob(thermal_npdat_path + "/*.JPG")
@@ -209,12 +210,14 @@ class Filters():
     
 class Modules():
 
-    def __init__(self, img, anomaly_csv_path):
+    def __init__(self, img, anomaly_modules):
         contours, hierarchy = cv2.findContours(
             img.astype(np.uint8), cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
 
         self.panel_contours = self.get_panel_contours(contours)
-        self.df_anomaly_points = pd.read_csv(anomaly_csv_path)
+        self.anomaly_modules = {}
+        for k, v in anomaly_modules.items():
+            self.anomaly_modules[k] = v
 
     def get_panel_contours(self, contours):
         panel_contours = []
@@ -244,8 +247,10 @@ class Modules():
         return panel_contours
 
     def get_anomaly_contours(self):
-        anomaly_module_index = self.df_anomaly_points.applymap(lambda x: np.int(x.split(".")[0]))
-        anomaly_contours = np.array(self.panel_contours)[anomaly_module_index.values.flatten()]
+        anomaly_contours = {}
+        for k, v in self.anomaly_modules.items():
+            module_index = list(map(lambda x: np.int(x.split(".")[0]), v))
+            anomaly_contours[k] = np.array(self.panel_contours)[module_index]
         return anomaly_contours
 
     def get_img_contours(self, img, index=False):        
@@ -266,21 +271,22 @@ class Modules():
     def fill_target_panels(self, img, target_contours, color):
         if len(img.shape) < 3:
             img_colored = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+            img_colored = cv2.cvtColor(img_colored, cv2.COLOR_BGR2RGB)
         else:
             img_colored = img
         img_filled = cv2.fillPoly(img_colored, target_contours, color)
-        return img_filled
+        return img_colored
 
     def add_index(self, img):
         if len(img.shape) < 3:
-            img_colored = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)        
+            img_colored = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+            img_colored = cv2.cvtColor(img_colored, cv2.COLOR_BGR2RGB)
         else:
-            img_colored = img;
+            img_colored = img
         for i in range(len(self.panel_contours)):
             mu = cv2.moments(self.panel_contours[i])
             x, y = int(mu["m10"]/mu["m00"]) , int(mu["m01"]/mu["m00"])
-            cv2.putText(img_colored, str(i), (x, y), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (0, 0, 255), thickness=1)
-        img_colored = cv2.cvtColor(img_colored, cv2.COLOR_BGR2RGB)
+            cv2.putText(img_colored, str(i), (x, y), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (255, 0, 0), thickness=1)
         return img_colored
 
     def get_scaled_centers(self, anomaly_contours):
@@ -347,13 +353,14 @@ class Modules():
             cv2.drawContours(img_box, [box], 0, (0,255,0), 2) # this was mostly for debugging you may omit
             plt.imshow(img_box,cmap='gray')
             plt.show()    
-    
+            
 if __name__ == "__main__":
 
     # 分析対象の指定
     input_img_path = '../ModuleExtraction/hokuto/thermal/DJI_0123_R.JPG'
     thermal_npdat_path = "../ModuleExtraction/hokuto/thermal"
-    anomaly_csv_path = "./modules_Module-Anomaly.csv"
+    with open('anomaly_modules.json', 'r') as f:
+        anomaly_modules = json.load(f)
 
     # フィルタの適用
     filters = Filters(thermal_npdat_path)    
@@ -362,7 +369,7 @@ if __name__ == "__main__":
     print("# done: apply filters")
     
     # モジュール輪郭の検出
-    modules = Modules(img_filtered, anomaly_csv_path)
+    modules = Modules(img_filtered, anomaly_modules)
     print("# done: extract module contours")    
     
     # モジュール情報の表示
@@ -374,13 +381,18 @@ if __name__ == "__main__":
     show_img({"extracted modules (overlay)":img_mask_index},cmap="gray",figsize=(30,30))
     print("# done: display modules")    
 
-    # ハイライト情報の表示
+    # 異常モジュール判定
     anomaly_contours = modules.get_anomaly_contours()
-    string_anomaly_labels = modules.get_string_anomaly_labels(anomaly_contours)
-    img_filled_index = modules.get_img_target_contours(
-        img_con, anomaly_contours, index=True)
-    img_sta_index = modules.get_img_target_contours(
-        img_con, anomaly_contours[string_anomaly_labels>=0], index=True)
-    show_img({"highlighted modules":img_filled_index},cmap="gray",figsize=(30,30))
-    show_img({"string-anomaly modules":img_sta_index},cmap="gray",figsize=(30,30))
+    for k, v in anomaly_contours.items():
+        img_target_index = modules.get_img_target_contours(
+            img_con, v, index=True)
+        show_img({"highlighted modules":img_target_index},cmap="gray",figsize=(30,30))
     print("# done: display highlighed module")
+        
+    # ストリング異常判定
+    string_anomaly_labels = modules.get_string_anomaly_labels(anomaly_contours["Module-Anomaly"])
+    anomaly_contours["String-Anomaly"] = anomaly_contours["Module-Anomaly"][string_anomaly_labels>=0]
+    img_string_index = modules.get_img_target_contours(
+        img_con, anomaly_contours["String-Anomaly"], index=True)
+    show_img({"string-anomaly modules":img_string_index},cmap="gray",figsize=(30,30))
+    print("# done: display string-anomaly module")
