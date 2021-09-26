@@ -210,14 +210,15 @@ class Filters():
     
 class Modules():
 
-    def __init__(self, img, anomaly_modules):
+    def __init__(self, img, anomaly_modules=None):
         contours, hierarchy = cv2.findContours(
             img.astype(np.uint8), cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
 
         self.panel_contours = self.get_panel_contours(contours)
         self.anomaly_modules = {}
-        for k, v in anomaly_modules.items():
-            self.anomaly_modules[k] = v
+        if anomaly_modules is not None:
+            for k, v in anomaly_modules.items():
+                self.anomaly_modules[k] = v
 
     def get_panel_contours(self, contours):
         panel_contours = []

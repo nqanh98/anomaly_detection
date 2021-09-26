@@ -34,8 +34,8 @@ class ThermalData:
         sscaler = preprocessing.StandardScaler()
         #sscaler.fit(all_temperature)
         scaled_temperature = {
-            #k: sscaler.transform(v.reshape(-1,v.shape[2])) for k, v in thermal_img_files.items()
-            k: sscaler.fit_transform(v.reshape(-1,v.shape[2])) for k, v in thermal_img_files.items()
+            #k: sscaler.transform(v.reshape(-1,v.shape[2])) for k, v in thermal_img_files.items() # scaled by all temperature
+            k: sscaler.fit_transform(v.reshape(-1,v.shape[2])) for k, v in thermal_img_files.items() # scale individualy
         }
         scaled_all_temperature = np.concatenate([*scaled_temperature.values()])
         self.scaled_temperature = scaled_temperature
