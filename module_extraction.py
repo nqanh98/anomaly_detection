@@ -1,4 +1,3 @@
-
 import numpy as np
 import pandas as pd
 import cv2
@@ -134,6 +133,7 @@ class Filters():
 
     def averaged_opening_data(self, img, show=False):
         C = -3.5
+        W = {11, 21, 31, 41, 51}
         binarized_img_cv_Cn3p5_w11 = cv2.adaptiveThreshold(img, 
                                                            255, 
                                                            cv2.ADAPTIVE_THRESH_GAUSSIAN_C, 

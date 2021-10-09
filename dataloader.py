@@ -18,11 +18,11 @@ def get_img_files(dir_path="./images/modules", gray=True):
     return img_files
 
 class ThermalData:
-    def __init__(self, thermal_img_files):
-        self.transforms(thermal_img_files)
-        self.transforms_with_index(thermal_img_files)
+    def __init__(self, thermal_img_files, scale_type="individual"):
+        self.transforms(thermal_img_files, scale_type)
+        self.transforms_with_index(thermal_img_files, scale_type)
         
-    def transforms(self, thermal_img_files):
+    def transforms(self, thermal_img_files, scale_type):
         # -- 1d flatten thermal data --
         temperature = {
             k: v.reshape(-1,v.shape[2]) for k, v in thermal_img_files.items()
@@ -32,12 +32,18 @@ class ThermalData:
         self.all_temperature = all_temperature        
         # -- 1d scaled flatten thermal data --
         sscaler = preprocessing.StandardScaler()
-        #sscaler.fit(all_temperature)
-        scaled_temperature = {
-            #k: sscaler.transform(v.reshape(-1,v.shape[2])) for k, v in thermal_img_files.items() # scaled by all temperature
-            k: sscaler.fit_transform(v.reshape(-1,v.shape[2])) for k, v in thermal_img_files.items() # scale individualy
-        }
-        scaled_all_temperature = np.concatenate([*scaled_temperature.values()])
+        if scale_type == "individual":
+            scaled_temperature = {
+                k: sscaler.fit_transform(v.reshape(-1,v.shape[2])) for k, v in thermal_img_files.items() # scale individualy
+            }
+        elif scale_type == "all":
+            sscaler.fit(all_temperature)
+            scaled_temperature = {
+                k: sscaler.transform(v.reshape(-1,v.shape[2])) for k, v in thermal_img_files.items() # scaled by all temperature
+            }
+        else:
+            print("not supported scale type:",scale_type)
+        scaled_all_temperature = np.concatenate([*scaled_temperature.values()])            
         self.scaled_temperature = scaled_temperature
         self.scaled_all_temperature = scaled_all_temperature
         
@@ -49,7 +55,7 @@ class ThermalData:
                 data_with_index.append([*data[y][x], y, x])            
         return np.array(data_with_index)
         
-    def transforms_with_index(self, thermal_img_files):
+    def transforms_with_index(self, thermal_img_files, scale_type):
         # -- 1d flatten thermal data with index --
         temperature_with_index = {
             k: self.get_data_with_index(v) for k, v in thermal_img_files.items()
@@ -58,9 +64,16 @@ class ThermalData:
         all_temperature_with_index = np.concatenate([*temperature_with_index.values()])
         # -- 1d scaled flatten thermal data with index --
         sscaler = preprocessing.StandardScaler()
-        #sscaler.fit(all_temperature_with_index)
-        scaled_temperature_with_index = {
-            #k: sscaler.transform(self.get_data_with_index(v)) for k, v in thermal_img_files.items()
-            k: sscaler.fit_transform(self.get_data_with_index(v)) for k, v in thermal_img_files.items()
-        }
+        if scale_type =="individual":
+            scaled_temperature_with_index = {
+                k: sscaler.fit_transform(self.get_data_with_index(v)) for k, v in thermal_img_files.items()
+            }
+        elif scale_type == "all":
+            sscaler.fit(all_temperature_with_index)
+            scaled_temperature_with_index = {
+                k: sscaler.transform(self.get_data_with_index(v)) for k, v in thermal_img_files.items()
+            }
+        else:
+            print("not supported scale type:",scale_type)
+            
         self.scaled_temperature_with_index = scaled_temperature_with_index
