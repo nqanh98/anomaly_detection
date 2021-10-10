@@ -29,14 +29,20 @@ class ThermalData:
         }
         self.temperature = temperature
         self.all_temperature = np.concatenate([*temperature.values()])
+        # -- 1d transformed flatten thermal data --
+        transformed_temperature = {
+            k: preprocessing.PowerTransformer().fit_transform(v.reshape(-1,3)) for k, v in thermal_img_files.items() # scale individualy
+        }
+        self.transformed_temperature = transformed_temperature
+        self.transformed_all_temperature = np.concatenate([*transformed_temperature.values()])
         # -- 1d scaled flatten thermal data --
-        #sscaler = preprocessing.StandardScaler()
-        rscaler = preprocessing.RobustScaler()
         if scale_type == "individual":
             scaled_temperature = {
-                k: rscaler.fit_transform(v.reshape(-1,3)) for k, v in thermal_img_files.items() # scale individualy
+                #k: preprocessing.RobustScaler().fit_transform(v.reshape(-1,3)) for k, v in thermal_img_files.items() # scale individualy
+                k: preprocessing.RobustScaler().fit_transform(v.reshape(-1,3)) for k, v in transformed_temperature.items() # scale individualy
             }
         elif scale_type == "all":
+            rscaler = preprocessing.RobustScaler()
             rscaler.fit(all_temperature)
             scaled_temperature = {
                 k: rscaler.transform(v.reshape(-1,3)) for k, v in thermal_img_files.items() # scaled by all temperature
