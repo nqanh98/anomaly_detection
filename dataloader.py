@@ -46,7 +46,7 @@ class ThermalData:
         scaled_all_temperature = np.concatenate([*scaled_temperature.values()])            
         self.scaled_temperature = scaled_temperature
         self.scaled_all_temperature = scaled_all_temperature
-        
+
     def get_data_with_index(self, data):
         data_with_index = []
         for y in range(data.shape[0]):
