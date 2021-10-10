@@ -63,12 +63,13 @@ class ThermalData:
         all_temperature_with_index = np.concatenate([*temperature_with_index.values()])
         # -- 1d scaled flatten thermal data with index --
         #sscaler = preprocessing.StandardScaler()
-        rscaler = preprocessing.RobustScaler()
-        if scale_type =="individual":
+        if scale_type == "individual":
             scaled_temperature_with_index = {
-                k: rscaler.fit_transform(self.get_data_with_index(v)) for k, v in thermal_img_files.items()
+                #k: rscaler.fit_transform(self.get_data_with_index(v)) for k, v in thermal_img_files.items()
+                k: preprocessing.RobustScaler().fit_transform(self.get_data_with_index(v)) for k, v in thermal_img_files.items()
             }
         elif scale_type == "all":
+            rscaler = preprocessing.RobustScaler()
             rscaler.fit(all_temperature_with_index)
             scaled_temperature_with_index = {
                 k: rscaler.transform(self.get_data_with_index(v)) for k, v in thermal_img_files.items()

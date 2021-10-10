@@ -73,6 +73,25 @@ def display_distributions(data, filepath="out.jpg", show=True, cluster_centers=N
                 color = 'orange', 
                 alpha = 0.8, 
                 linestyle = ':')
+    ax1.axvline(x = data.mean() + 2*data.std(ddof=1), 
+                color = 'orange', 
+                alpha = 0.8, 
+                linestyle = ':')
+    ax1.axvline(x = np.percentile(data,25),
+                color = 'blue', 
+                alpha = 0.8, 
+                linestyle = ':', 
+                label = 'q1')
+    ax1.axvline(x = np.percentile(data,50),
+                color = 'blue', 
+                alpha = 0.8, 
+                linestyle = ':', 
+                label = 'q2')
+    ax1.axvline(x = np.percentile(data,75),
+                color = 'blue', 
+                alpha = 0.8, 
+                linestyle = ':', 
+                label = 'q3')
     # -- cluster centers --
     if cluster_centers is not None:
         for i in range(cluster_centers.shape[1]):
