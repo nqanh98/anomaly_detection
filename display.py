@@ -102,7 +102,7 @@ def display_distributions(data, filepath="out.jpg", show=True, cluster_centers=N
         plt.show()
     else:
         plt.close()
-
+        
 def display_modules(img_dict, vmin=0, vmax=255):
     fig = plt.figure(figsize=(12,4),facecolor="w")
     n = len(img_dict)

@@ -30,48 +30,21 @@ class ThermalData:
         self.temperature = temperature
         self.all_temperature = np.concatenate([*temperature.values()])
         # -- 1d scaled flatten thermal data --
-        sscaler = preprocessing.StandardScaler()
+        #sscaler = preprocessing.StandardScaler()
+        rscaler = preprocessing.RobustScaler()
         if scale_type == "individual":
             scaled_temperature = {
-                k: sscaler.fit_transform(v.reshape(-1,3)) for k, v in thermal_img_files.items() # scale individualy
+                k: rscaler.fit_transform(v.reshape(-1,3)) for k, v in thermal_img_files.items() # scale individualy
             }
         elif scale_type == "all":
-            sscaler.fit(all_temperature)
+            rscaler.fit(all_temperature)
             scaled_temperature = {
-                k: sscaler.transform(v.reshape(-1,3)) for k, v in thermal_img_files.items() # scaled by all temperature
+                k: rscaler.transform(v.reshape(-1,3)) for k, v in thermal_img_files.items() # scaled by all temperature
             }
         else:
             print("not supported scale type:",scale_type)
         self.scaled_temperature = scaled_temperature
         self.scaled_all_temperature = np.concatenate([*scaled_temperature.values()])
-        # -- 1d masked flatter thermal data --
-        masked_temperature = {
-            k: temperature[k][(v>-2) & (v<2)].reshape(-1,3) for k, v in scaled_temperature.items()
-        }
-        self.masked_temperature = masked_temperature
-        self.masked_all_temperature = np.concatenate([*masked_temperature.values()])        
-        # -- 1d scaled masked flatter thermal data --
-        scaled_masked_temperature = {
-            k: sscaler.fit_transform(v) for k, v in masked_temperature.items()
-        }
-        self.scaled_masked_temperature = scaled_masked_temperature
-        self.scaled_masked_all_temperature = np.concatenate([*scaled_masked_temperature.values()])
-        # -- 1d transformed flatten thermal data --
-        pscaler = preprocessing.PowerTransformer(standardize=True)
-        if scale_type == "individual":
-            transformed_temperature = {
-                k: pscaler.fit_transform(v.reshape(-1,3)) for k, v in thermal_img_files.items() # scale individualy
-            }
-        elif scale_type == "all":
-            pscaler.fit(all_temperature)
-            transformed_temperature = {
-                k: sscaler.transform(v.reshape(-1,3)) for k, v in thermal_img_files.items() # scaled by all temperature
-            }
-        else:
-            print("not supported scale type:",scale_type)
-        self.transformed_temperature = transformed_temperature
-        self.transformed_all_temperature = np.concatenate([*transformed_temperature.values()])
-        
 
     def get_data_with_index(self, data):
         data_with_index = []
@@ -89,15 +62,16 @@ class ThermalData:
         self.temperature_with_index = temperature_with_index
         all_temperature_with_index = np.concatenate([*temperature_with_index.values()])
         # -- 1d scaled flatten thermal data with index --
-        sscaler = preprocessing.StandardScaler()
+        #sscaler = preprocessing.StandardScaler()
+        rscaler = preprocessing.RobustScaler()
         if scale_type =="individual":
             scaled_temperature_with_index = {
-                k: sscaler.fit_transform(self.get_data_with_index(v)) for k, v in thermal_img_files.items()
+                k: rscaler.fit_transform(self.get_data_with_index(v)) for k, v in thermal_img_files.items()
             }
         elif scale_type == "all":
-            sscaler.fit(all_temperature_with_index)
+            rscaler.fit(all_temperature_with_index)
             scaled_temperature_with_index = {
-                k: sscaler.transform(self.get_data_with_index(v)) for k, v in thermal_img_files.items()
+                k: rscaler.transform(self.get_data_with_index(v)) for k, v in thermal_img_files.items()
             }
         else:
             print("not supported scale type:",scale_type)
