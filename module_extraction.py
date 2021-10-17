@@ -251,6 +251,7 @@ class Modules():
         anomaly_contours = {}
         for k, v in self.anomaly_modules.items():
             module_index = list(map(lambda x: np.int(x.split(".")[0]), v))
+            print(k, module_index)
             anomaly_contours[k] = np.array(self.panel_contours)[module_index]
         return anomaly_contours
 
@@ -275,7 +276,7 @@ class Modules():
             img_colored = cv2.cvtColor(img_colored, cv2.COLOR_BGR2RGB)
         else:
             img_colored = img
-        img_filled = cv2.fillPoly(img_colored, target_contours, color)
+        cv2.drawContours(img_colored, target_contours, -1, color, 2)            
         return img_colored
 
     def add_index(self, img):
