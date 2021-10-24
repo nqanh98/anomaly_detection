@@ -30,16 +30,16 @@ class ThermalData:
         self.temperature = temperature
         self.all_temperature = np.concatenate([*temperature.values()])
         # -- 1d transformed flatten thermal data --
-        transformed_temperature = {
-            k: preprocessing.PowerTransformer().fit_transform(v.reshape(-1,3)) for k, v in thermal_img_files.items() # scale individualy
-        }
-        self.transformed_temperature = transformed_temperature
-        self.transformed_all_temperature = np.concatenate([*transformed_temperature.values()])
+        #transformed_temperature = {
+        #    k: preprocessing.PowerTransformer().fit_transform(v.reshape(-1,3)) for k, v in thermal_img_files.items() # scale individualy
+        #}
+        #self.transformed_temperature = transformed_temperature
+        #self.transformed_all_temperature = np.concatenate([*transformed_temperature.values()])
         # -- 1d scaled flatten thermal data --
         if scale_type == "individual":
             scaled_temperature = {
-                #k: preprocessing.RobustScaler().fit_transform(v.reshape(-1,3)) for k, v in thermal_img_files.items() # scale individualy
-                k: preprocessing.RobustScaler().fit_transform(v.reshape(-1,3)) for k, v in transformed_temperature.items() # scale individualy
+                k: preprocessing.RobustScaler().fit_transform(v.reshape(-1,3)) for k, v in thermal_img_files.items() # scale individualy
+                #k: preprocessing.RobustScaler().fit_transform(v.reshape(-1,3)) for k, v in transformed_temperature.items() # scale individualy
             }
         elif scale_type == "all":
             rscaler = preprocessing.RobustScaler()
@@ -68,7 +68,6 @@ class ThermalData:
         self.temperature_with_index = temperature_with_index
         all_temperature_with_index = np.concatenate([*temperature_with_index.values()])
         # -- 1d scaled flatten thermal data with index --
-        #sscaler = preprocessing.StandardScaler()
         if scale_type == "individual":
             scaled_temperature_with_index = {
                 #k: rscaler.fit_transform(self.get_data_with_index(v)) for k, v in thermal_img_files.items()
@@ -82,5 +81,4 @@ class ThermalData:
             }
         else:
             print("not supported scale type:",scale_type)
-            
         self.scaled_temperature_with_index = scaled_temperature_with_index
