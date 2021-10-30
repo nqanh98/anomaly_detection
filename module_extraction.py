@@ -7,7 +7,8 @@ from sklearn.cluster import DBSCAN
 import json
 
 def get_thermal_data(thermal_npdat_path):
-    thermal_npdat_list = glob.glob(thermal_npdat_path + "/*.JPG")
+    #thermal_npdat_list = glob.glob(thermal_npdat_path + "/*.JPG")
+    thermal_npdat_list = glob.glob(thermal_npdat_path + "/*")
     thermal_npdats = []
     for filename in thermal_npdat_list:
         temp = cv2.imread(filename, 0)
@@ -297,7 +298,7 @@ class Modules():
         scaled_centers = centers / np.mean(l) # coordinate in module-scaled space
         return scaled_centers
 
-    def get_string_anomaly_labels(self, anomaly_contours, show=False):
+    def get_dbscan_labels(self, anomaly_contours, show=False):
         scaled_centers = self.get_scaled_centers(anomaly_contours)
         model = DBSCAN(eps=1.5, min_samples=3).fit(scaled_centers) # eps: hyper parameter (1.5 module size)
         if show:

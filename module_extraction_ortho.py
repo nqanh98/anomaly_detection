@@ -1,4 +1,5 @@
 
+import os
 import numpy as np
 import pandas as pd
 import cv2
@@ -7,8 +8,10 @@ import glob
 from sklearn.cluster import DBSCAN
 import json
 
+import contours_extractor
+
 def get_thermal_data(thermal_npdat_path):
-    thermal_npdat_list = glob.glob(thermal_npdat_path + "/*.JPG")
+    thermal_npdat_list = glob.glob(thermal_npdat_path + "/*.tif")
     thermal_npdats = []
     for filename in thermal_npdat_list:
         temp = cv2.imread(filename, 0)
@@ -59,36 +62,37 @@ def show_img(img_dict, cmap=None, figsize=(12,12)):
 
 class Filters():
 
-    def __init__(self, thermal_npdat_path=None):
-        if thermal_npdat_path is not None:
-            self.get_limits(thermal_npdat_path)
-        else:
-            self.upper_lim_pix_val = None
-            self.lower_lim_pix_val = None
+    def __init__(self):
         
-    def get_limits(self, thermal_npdat_path):
-        thermal_npdats = get_thermal_data(thermal_npdat_path)
-        thermal_npdats_arr = np.asarray(thermal_npdats)
-        # del thermal_npdats
-        thermal_npdats_arr = thermal_npdats_arr.reshape((-1))
-        correct_value = np.amin(thermal_npdats_arr)
+        # -- parameters for preprocessing --
+        self.get_limit_data()
+        self.flip_flag = False
+        self.clipLimit = 2.0
+        self.tileGridSize = 8
+        self.blur_kernel_size = 10
+        self.bilateral_d = 5
+        self.bilateral_sigmaColor = 200
+        self.bilateral_sigmaSpace = 50
+        self.sharp_kernel_value = 10.0
+        self.inflate_flag = True
+        self.gamma = 1.5
+        self.window_size_list = [91, 101, 111]
+        self.C = -7
+        self.ensemble_flag = True
+        # -- parameters for selecting contours --
+        self.area_min=500
+        self.area_max=2500
+        self.aspect_min=0.45
+        self.aspect_max=0.65
 
-        if correct_value < 0:
-            # ガンマ補正のため（負の値では計算できない）
-            thermal_npdats_arr = thermal_npdats_arr - correct_value
-            # 画像も同じ補正をかける
-            img_np_org = img_np_org - correct_value
-        else:
-            pass
-
-        mean_pix_val = np.mean(thermal_npdats_arr)
-        double_std_pix_val = 2 * np.std(thermal_npdats_arr, ddof=1)
-        max_pix_val = np.amax(thermal_npdats_arr)
-        min_pix_val = np.amin(thermal_npdats_arr)
-
-        # これらの範囲を超えるものはこの値で置換する
-        self.upper_lim_pix_val = mean_pix_val + double_std_pix_val
-        self.lower_lim_pix_val = mean_pix_val - double_std_pix_val
+    def get_limit_data(self):
+        try:
+            # これらの範囲を超えるものはこの値で置換する
+            self.lower_lim_pix_val = np.load('params/lower_lim_pix_val.npy')
+            self.upper_lim_pix_val = np.load('params/upper_lim_pix_val.npy')
+        except:
+            self.lower_lim_pix_val = None
+            self.upper_lim_pix_val = None
 
     def check_limit_data(self, img):
         if self.upper_lim_pix_val == None or self.lower_lim_pix_val == None:
@@ -98,147 +102,54 @@ class Filters():
             min_pix_val = np.amin(img)
             self.upper_lim_pix_val = mean_pix_val + double_std_pix_val
             self.lower_lim_pix_val = mean_pix_val - double_std_pix_val
-        
-    def normalize(self, img, show=False):
+
+    def get_module_contours(self, img):
         self.check_limit_data(img)
-        temp = np.where(img > self.upper_lim_pix_val, self.upper_lim_pix_val, img)
-        img_normed = np.where(temp < self.lower_lim_pix_val, self.lower_lim_pix_val, temp)
-        if show: show_img({"input":img, "normed": img_normed},cmap="gray")
-        return img_normed
+        
+        img_processed = contours_extractor.preprocessing(img, 
+                                                         self.upper_lim_pix_val, self.lower_lim_pix_val, 
+                                                         flip_flag = self.flip_flag, 
+                                                         clipLimit = self.clipLimit,
+                                                         tileGridSize = (self.tileGridSize, self.tileGridSize), 
+                                                         blur_kernel_size = (self.blur_kernel_size, self.blur_kernel_size), 
+                                                         bilateral_d = self.bilateral_d,
+                                                         bilateral_sigmaColor = self.bilateral_sigmaColor,
+                                                         bilateral_sigmaSpace = self.bilateral_sigmaSpace, 
+                                                         sharp_kernel_value = self.sharp_kernel_value, 
+                                                         inflate_flag = self.inflate_flag, 
+                                                         gamma = self.gamma, 
+                                                         window_size_list = self.window_size_list, 
+                                                         C = self.C,  
+                                                         ensemble_flag = self.ensemble_flag)
+        
+        modules_contours = contours_extractor.select_contours_and_minAreaRect(img_processed, 
+                                                                              area_min=self.area_min,
+                                                                              area_max=self.area_max, 
+                                                                              aspect_min=self.aspect_min,
+                                                                              aspect_max=self.aspect_max)
+        return modules_contours
 
-    def clahe(self, img, clipLimit=2.0, tileGridSize=(8,8), show=False):
-        img_8 = np.array(img, dtype=np.uint8)
-        clahe = cv2.createCLAHE(clipLimit=clipLimit, tileGridSize=tileGridSize)
-        img_clahe = clahe.apply(img_8)
-        if show: show_img({"input":img, "clahe": img_clahe},cmap="gray")
-        return img_clahe
-
-    def blur(self, img, blur_kernel_size=(3,3), show=False):
-        img_blured = cv2.blur(img, blur_kernel_size)
-        if show: show_img({"input":img, "blured": img_blured},cmap="gray")    
-        return img_blured
-
-    def bilateral_filter(self, img, bilateral_d=3, bilateral_sigmaColor=200, bilateral_sigmaSpace=50, show=False):
-        img_bilateral_filtered = cv2.bilateralFilter(img.astype(np.float32),
-                                                     bilateral_d, bilateral_sigmaColor, bilateral_sigmaSpace)
-        if show: show_img({"input":img, "filtered": img_bilateral_filtered},cmap="gray")    
-        return img_bilateral_filtered
-
-    def sharpen(self, img, sharp_kernel_value=1.0, show=False):
-        sharpen_kernel = np.array([[-sharp_kernel_value, -sharp_kernel_value, -sharp_kernel_value], 
-                                   [-sharp_kernel_value, 1+8*sharp_kernel_value, -sharp_kernel_value], 
-                                   [-sharp_kernel_value, -sharp_kernel_value, -sharp_kernel_value]])
-        img_sharpen = cv2.filter2D(img, ddepth=-1, kernel=sharpen_kernel)
-        if show: show_img({"input":img, "sharpen": img_sharpen},cmap="gray")
-        return img_sharpen
-
-    def opening(self, img, show=False):
-        kernel1 = np.ones((5,5), np.uint8)
-        img_erosion = cv2.erode(img, kernel1, iterations = 2)
-        kernel2 = np.ones((4,4), np.uint8)
-        img_dilation = cv2.dilate(img_erosion, kernel2, iterations = 2)
-        if show: show_img({"input":img, "erosion":img_erosion, "dilation": img_dilation},cmap="gray")
-        return img_dilation
-
-    def eight_bit_scaler(self, img, axis=None, show=False):
-        min = img.min(axis=axis, keepdims=True)
-        max = img.max(axis=axis, keepdims=True)
-        img_min_max_scaled = 255 * (img-min)/(max-min)
-        img_8bit = img_min_max_scaled.astype(np.uint8)
-        if show: show_img({"input":img, "8bit": img_8bit},cmap="viridis")
-        return img_8bit
-
-    def gamma_correction(self, img, gamma=4.8, show=False):
-        img_8bit = self.eight_bit_scaler(img)
-        if show: show_img({"input":img, "8bit": img_8bit},cmap="viridis")
-        img_gamma = np.power(img_8bit / float(np.max(img_8bit)), gamma)
-        img_gamma_8bit = self.eight_bit_scaler(img_gamma)
-        if show: show_img({"input":img, "gamma_8bit": img_gamma_8bit},cmap="viridis")
-        return img_gamma_8bit
-
-    def average_binarized(self, img, ensemble_flag=False, show=False):
-        C = -3.5
-        binarized_w = {}
-        W = {11, 21, 31, 41, 51, 61, 71}
-        #W = {11, 21, 31, 41, 51}
-        for w in W:
-            binarized_w[w] = cv2.adaptiveThreshold(img, 
-                                                   255, 
-                                                   cv2.ADAPTIVE_THRESH_GAUSSIAN_C, 
-                                                   cv2.THRESH_BINARY, 
-                                                   w,
-                                                   C)
-            kernel = np.ones((3,3), np.uint8)
-            #binarized_w[w] = cv2.morphologyEx(binarized_w[w], cv2.MORPH_OPEN,  kernel, iterations = 1)
-            binarized_w[w] = cv2.morphologyEx(binarized_w[w], cv2.MORPH_CLOSE, kernel, iterations = 2)
-
-        ave = np.stack(binarized_w.values()).sum(axis=0) / len(binarized_w)
-
-        if ensemble_flag:
-            ave_bi = np.where(ave > 3*255/7, 255, 0)
-        else:
-            ave_bi = np.where(ave > 0, 255, 0)
-
-        if show:
-            show_img({"input":img,
-                      "ave": ave,
-                      "ave_bi": ave_bi,
-                      },cmap="gray")
-        return ave_bi
-
-    def apply_all_filters(self, img):
-        img_normed = self.normalize(img)
-        img_clahe = self.clahe(img_normed)
-        img_blured = self.blur(img_clahe)
-        img_bilateral_filtered = self.bilateral_filter(img_blured)
-        img_sharpen = self.sharpen(img_bilateral_filtered)
-        img_opening = self.opening(img_sharpen)
-        #img_eight_bit_scaled = self.eight_bit_scaler(img_opening)
-        img_gamma_8bit = self.gamma_correction(img_opening)
-        img_average = self.average_binarized(img_gamma_8bit)
-        return img_average
     
 class Modules():
 
-    def __init__(self, img, anomaly_modules=None):
-        contours, hierarchy = cv2.findContours(
-            img.astype(np.uint8), cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+    def __init__(self, img, module_contours, anomaly_modules=None):
 
-        self.panel_contours = self.get_panel_contours(contours)
+        self.modules_contours = module_contours
         self.anomaly_modules = {}
         if anomaly_modules is not None:
             for k, v in anomaly_modules.items():
                 self.anomaly_modules[k] = v
-
-    def get_panel_contours(self, contours):
-        panel_contours = []
-        # 輪郭を１つずつ書き込んで出力
-        for i in range(len(contours)):
-            area = cv2.contourArea(contours[i])
-            if 1000 < area < 3000:
-                peri = cv2.arcLength(contours[i], True)
-                squareness = 4 * np.pi * area / peri**2
-                # https://answers.opencv.org/question/171583/eliminate-unwanted-contours-opencv/            
-                if 0.5 <= squareness <= 1.0:
-                #if 0.3 <= squareness <= 0.8:
-                    rect = cv2.minAreaRect(contours[i])
-                    box = cv2.boxPoints(rect)
-                    box = np.int0(box)
-                    if 1000 < cv2.contourArea(box) < 3000:
-                        info = get_rect_info(box)
-                        panel_contours.append(box)
-        return panel_contours
     
     def get_anomaly_contours(self):
         anomaly_contours = {}
         for k, v in self.anomaly_modules.items():
             module_index = list(map(lambda x: np.int(x.split(".")[0]), v))
-            anomaly_contours[k] = np.array(self.panel_contours)[module_index]
+            anomaly_contours[k] = np.array(self.modules_contours)[module_index]
         return anomaly_contours
 
     def get_img_contours(self, img, index=False):        
-        #img_con = cv2.drawContours(np.zeros_like(img), self.panel_contours, -1, 255, -1)
-        img_con = cv2.fillPoly(np.zeros_like(img), self.panel_contours, 255)
+        #img_con = cv2.drawContours(np.zeros_like(img), self.modules_contours, -1, 255, -1)
+        img_con = cv2.fillPoly(np.zeros_like(img), self.modules_contours, 255)
         if index:
             return self.add_index(img_con)
         else:
@@ -257,7 +168,7 @@ class Modules():
             img_colored = cv2.cvtColor(img_colored, cv2.COLOR_BGR2RGB)
         else:
             img_colored = img
-        img_filled = cv2.fillPoly(img_colored, target_contours, color)
+        cv2.drawContours(img_colored, target_contours, -1, color, 2)                    
         return img_colored
 
     def add_index(self, img):
@@ -266,8 +177,8 @@ class Modules():
             img_colored = cv2.cvtColor(img_colored, cv2.COLOR_BGR2RGB)
         else:
             img_colored = img
-        for i in range(len(self.panel_contours)):
-            mu = cv2.moments(self.panel_contours[i])
+        for i in range(len(self.modules_contours)):
+            mu = cv2.moments(self.modules_contours[i])
             x, y = int(mu["m10"]/mu["m00"]) , int(mu["m01"]/mu["m00"])
             cv2.putText(img_colored, str(i), (x, y), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (255, 0, 0), thickness=1)
         return img_colored
@@ -289,9 +200,12 @@ class Modules():
 
     def extract_modules(self, img):
         mult = 1.2   # I wanted to show an area slightly larger than my min rectangle set this to one if you don't
+        #mult = 1.0   # I wanted to show an area slightly larger than my min rectangle set this to one if you don't
         img_box = img.copy()
         #img_box = cv2.cvtColor(im_con.copy(), cv2.COLOR_GRAY2BGR)
-        for i, cnt in enumerate(self.panel_contours):
+        os.makdirs("images/modules/",exist_ok=True)
+        os.rmove("images/modules/*.jpg")
+        for i, cnt in enumerate(self.modules_contours):
             rect = cv2.minAreaRect(cnt)
             box = cv2.boxPoints(rect)
             box = np.int0(box)
@@ -330,12 +244,12 @@ class Modules():
                                                (int(croppedW*mult), int(croppedH*mult)), (size[0]/2, size[1]/2))
 
             plt.imshow(croppedRotated,cmap='gray')
-            cv2.imwrite("trimed/"+str(i)+".jpg", croppedRotated)
+            cv2.imwrite("images/modules/"+str(i)+".jpg", croppedRotated)
             plt.show()
 
-            cv2.drawContours(img_box, [box], 0, (0,255,0), 2) # this was mostly for debugging you may omit
-            plt.imshow(img_box,cmap='gray')
-            plt.show()    
+            #cv2.drawContours(img_box, [box], 0, (0,255,0), 2) # this was mostly for debugging you may omit
+            #plt.imshow(img_box,cmap='gray')
+            #plt.show()    
             
 if __name__ == "__main__":
 

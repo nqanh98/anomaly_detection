@@ -29,6 +29,8 @@ class ThermalData:
         }
         self.temperature = temperature
         self.all_temperature = np.concatenate([*temperature.values()])
+        self.mean_temperature = self.all_temperature.mean(axis=0)
+        self.median_temperature = np.mean(self.all_temperature,axis=0)
         # -- 1d transformed flatten thermal data --
         #transformed_temperature = {
         #    k: preprocessing.PowerTransformer().fit_transform(v.reshape(-1,3)) for k, v in thermal_img_files.items() # scale individualy
@@ -51,7 +53,7 @@ class ThermalData:
             print("not supported scale type:",scale_type)
         self.scaled_temperature = scaled_temperature
         self.scaled_all_temperature = np.concatenate([*scaled_temperature.values()])
-
+        
     def get_data_with_index(self, data):
         data_with_index = []
         for y in range(data.shape[0]):
