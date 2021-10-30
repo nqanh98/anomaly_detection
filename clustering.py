@@ -55,3 +55,4 @@ class TemperatureClusters:
             clusters.append(cluster)
         return clusters
 
+

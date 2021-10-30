@@ -1,12 +1,13 @@
 
+import shutil
 import os
 import numpy as np
 import pandas as pd
 import cv2
 import matplotlib.pyplot as plt
 import glob
-from sklearn.cluster import DBSCAN
 import json
+from sklearn.cluster import KMeans, DBSCAN
 
 import contours_extractor
 
@@ -132,8 +133,7 @@ class Filters():
     
 class Modules():
 
-    def __init__(self, img, module_contours, anomaly_modules=None):
-
+    def __init__(self, module_contours, anomaly_modules=None):
         self.modules_contours = module_contours
         self.anomaly_modules = {}
         if anomaly_modules is not None:
@@ -183,29 +183,33 @@ class Modules():
             cv2.putText(img_colored, str(i), (x, y), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (255, 0, 0), thickness=1)
         return img_colored
 
-    def get_scaled_centers(self, anomaly_contours):
-        centers = np.array( [c.mean(axis=0) for c in anomaly_contours] )
-        l = [ max(cv2.minAreaRect(c)[1]) for c in anomaly_contours]
+    def get_scaled_centers(self,module_contours):
+        centers = np.array( [c.mean(axis=0) for c in module_contours] )
+        l = [ max(cv2.minAreaRect(c)[1]) for c in module_contours]
         scaled_centers = centers / np.mean(l) # coordinate in module-scaled space
         return scaled_centers
 
-    def get_string_anomaly_labels(self, anomaly_contours, show=False):
-        scaled_centers = self.get_scaled_centers(anomaly_contours)
+    def get_dbscan_labels(self,module_contours, show=False):
+        scaled_centers = self.get_scaled_centers(module_contours)
         model = DBSCAN(eps=1.5, min_samples=3).fit(scaled_centers) # eps: hyper parameter (1.5 module size)
         if show:
             cmap = plt.get_cmap("tab10")
             plt.scatter(scaled_centers[:,0],-scaled_centers[:,1], color=cmap(model.labels_+1))
             plt.show()
         return model.labels_
-
-    def extract_modules(self, img):
-        mult = 1.2   # I wanted to show an area slightly larger than my min rectangle set this to one if you don't
-        #mult = 1.0   # I wanted to show an area slightly larger than my min rectangle set this to one if you don't
+    
+    def extract_modules(self, img, output_dir_path):
+        #mult = 1.2   # I wanted to show an area slightly larger than my min rectangle set this to one if you don't
+        mult = 1.0   # I wanted to show an area slightly larger than my min rectangle set this to one if you don't
         img_box = img.copy()
         #img_box = cv2.cvtColor(im_con.copy(), cv2.COLOR_GRAY2BGR)
-        os.makdirs("images/modules/",exist_ok=True)
-        os.rmove("images/modules/*.jpg")
+        filePath = output_dir_path+"/modules/"
+        os.makedirs(filePath,exist_ok=True)
+        shutil.rmtree(filePath)
+        os.makedirs(filePath,exist_ok=True)                
+        
         for i, cnt in enumerate(self.modules_contours):
+
             rect = cv2.minAreaRect(cnt)
             box = cv2.boxPoints(rect)
             box = np.int0(box)
@@ -244,8 +248,8 @@ class Modules():
                                                (int(croppedW*mult), int(croppedH*mult)), (size[0]/2, size[1]/2))
 
             plt.imshow(croppedRotated,cmap='gray')
-            cv2.imwrite("images/modules/"+str(i)+".jpg", croppedRotated)
-            plt.show()
+            cv2.imwrite(filePath+str(i)+".jpg", croppedRotated)
+            #plt.show()
 
             #cv2.drawContours(img_box, [box], 0, (0,255,0), 2) # this was mostly for debugging you may omit
             #plt.imshow(img_box,cmap='gray')
