@@ -133,16 +133,17 @@ class Filters():
     
 class Modules():
 
-    def __init__(self, module_contours, anomaly_modules=None):
+    def __init__(self, module_contours):
         self.modules_contours = module_contours
-        self.anomaly_modules = {}
-        if anomaly_modules is not None:
-            for k, v in anomaly_modules.items():
-                self.anomaly_modules[k] = v
+        #self.anomaly_modules = {}
+        #if anomaly_modules is not None:
+        #    for k, v in anomaly_modules.items():
+        #        self.anomaly_modules[k] = v
     
-    def get_anomaly_contours(self):
+    def get_anomaly_contours(self, anomaly_modules):
         anomaly_contours = {}
-        for k, v in self.anomaly_modules.items():
+        #for k, v in self.anomaly_modules.items():
+        for k, v in anomaly_modules.items():
             module_index = list(map(lambda x: np.int(x.split(".")[0]), v))
             anomaly_contours[k] = np.array(self.modules_contours)[module_index]
         return anomaly_contours
@@ -189,7 +190,7 @@ class Modules():
         scaled_centers = centers / np.mean(l) # coordinate in module-scaled space
         return scaled_centers
 
-    def get_dbscan_labels(self,module_contours, show=False):
+    def get_dbscan_labels(self, module_contours, show=False):
         scaled_centers = self.get_scaled_centers(module_contours)
         model = DBSCAN(eps=1.5, min_samples=3).fit(scaled_centers) # eps: hyper parameter (1.5 module size)
         if show:
