@@ -1,7 +1,7 @@
-/images*
-/hist
-/old
-/params
-/experiments
+/images*/
+/hist/
+/old/
+/params/
+/experiments/
+/outputs/
 test_anomaly*.ipynb
-/outputs
