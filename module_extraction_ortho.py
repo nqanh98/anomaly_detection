@@ -64,7 +64,6 @@ def show_img(img_dict, cmap=None, figsize=(12,12)):
 class Filters():
 
     def __init__(self):
-        
         # -- parameters for preprocessing --
         self.get_limit_data()
         self.flip_flag = False
@@ -91,6 +90,8 @@ class Filters():
             # これらの範囲を超えるものはこの値で置換する
             self.lower_lim_pix_val = np.load('params/lower_lim_pix_val.npy')
             self.upper_lim_pix_val = np.load('params/upper_lim_pix_val.npy')
+            #self.lower_lim_pix_val = None
+            #self.upper_lim_pix_val = None
         except:
             self.lower_lim_pix_val = None
             self.upper_lim_pix_val = None
@@ -190,9 +191,9 @@ class Modules():
         scaled_centers = centers / np.mean(l) # coordinate in module-scaled space
         return scaled_centers
 
-    def get_dbscan_labels(self, module_contours, show=False):
+    def get_dbscan_labels(self, module_contours, eps=1.5, show=False):
         scaled_centers = self.get_scaled_centers(module_contours)
-        model = DBSCAN(eps=1.5, min_samples=3).fit(scaled_centers) # eps: hyper parameter (1.5 module size)
+        model = DBSCAN(eps=eps, min_samples=3).fit(scaled_centers) # eps: hyper parameter (1.5 module size)
         if show:
             cmap = plt.get_cmap("tab10")
             plt.scatter(scaled_centers[:,0],-scaled_centers[:,1], color=cmap(model.labels_+1))
@@ -248,7 +249,7 @@ class Modules():
             croppedRotated = cv2.getRectSubPix(cropped,
                                                (int(croppedW*mult), int(croppedH*mult)), (size[0]/2, size[1]/2))
 
-            plt.imshow(croppedRotated,cmap='gray')
+            #plt.imshow(croppedRotated,cmap='gray')
             cv2.imwrite(filePath+str(i)+".jpg", croppedRotated)
             #plt.show()
 
@@ -292,7 +293,7 @@ if __name__ == "__main__":
     print("# done: display highlighed module")
         
     # ストリング異常判定
-    string_anomaly_labels = modules.get_string_anomaly_labels(anomaly_contours["Module-Anomaly"])
+    string_anomaly_labels = modules.get_dbscan_labels(anomaly_contours["Module-Anomaly"])
     anomaly_contours["String-Anomaly"] = anomaly_contours["Module-Anomaly"][string_anomaly_labels>=0]
     img_string_index = modules.get_img_target_contours(
         img_con, anomaly_contours["String-Anomaly"], index=True)
