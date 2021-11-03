@@ -1,7 +1,8 @@
+/.ipynb_checkpoints/
 /images*/
 /hist/
 /old/
 /params/
 /experiments/
 /outputs/
-test_anomaly*.ipynb
+#test_anomaly*.ipynb
