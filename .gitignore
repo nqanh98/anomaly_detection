@@ -3,5 +3,5 @@
 /old
 /params
 /experiments
-*.ipynb
+test_anomaly*.ipynb
 /outputs

@@ -63,36 +63,36 @@ def detect_module_type(hot_clusters, hot_pixels):
 
 
 # clusters temperature 
-array_clusters_temperature = {}
-for c in range(0,max(module_labels)+1):
-    tmp = []
-    print("array:", c)
-    print("--> generate clusters temperature")
-    # -- clustering --
-    for k, v in data_array[c].scaled_temperature_with_index.items():
-        clusters = clustering.TemperatureClusters(v, method=clustering_method)  
-        sliced_data = clusters.get_clusters_data(data_array[c].temperature[k])   
-        original_clusters_temperature = np.stack([np.uint8(t.mean(axis=0)) for t in sliced_data])
-        tmp.append(original_clusters_temperature)
-    array_clusters_temperature[c] = np.vstack(tmp)
+# array_clusters_temperature = {}
+# for c in range(0,max(module_labels)+1):
+#     tmp = []
+#     print("array:", c)
+#     print("--> generate clusters temperature")
+#     # -- clustering --
+#     for k, v in data_array[c].scaled_temperature_with_index.items():
+#         clusters = clustering.TemperatureClusters(v, method=clustering_method)  
+#         sliced_data = clusters.get_clusters_data(data_array[c].temperature[k])   
+#         original_clusters_temperature = np.stack([np.uint8(t.mean(axis=0)) for t in sliced_data])
+#         tmp.append(original_clusters_temperature)
+#     array_clusters_temperature[c] = np.vstack(tmp)
 
 
-# lof model
-array_clf = {}
-for c in range(0,max(module_labels)+1):
-    print("array:", c)
-    print("--> generate lof model")
-    n_modules = len(data_array[c].temperature)
-    lof = LocalOutlierFactor(n_neighbors=n_modules, contamination="auto", novelty=True)
-    #lof = LocalOutlierFactor(n_neighbors=50, contamination=0.1, novelty=True)
-    array_clf[c] = lof.fit(array_clusters_temperature[c])
+# # lof model
+# array_clf = {}
+# for c in range(0,max(module_labels)+1):
+#     print("array:", c)
+#     print("--> generate lof model")
+#     n_modules = len(data_array[c].temperature)
+#     lof = LocalOutlierFactor(n_neighbors=n_modules, contamination="auto", novelty=True)
+#     #lof = LocalOutlierFactor(n_neighbors=50, contamination=0.1, novelty=True)
+#     array_clf[c] = lof.fit(array_clusters_temperature[c])
 
-cmap = plt.get_cmap("tab20")
-for c in range(0,max(module_labels)+1):
-    print("array:", c)
-    fig, ax = plt.subplots(facecolor="w")
-    data = array_clusters_temperature[c]
-    pred = array_clf[c].predict(data)
-    plt.scatter(data[:, 0], data[:, 1], color=cmap(pred+1))
-    ax.legend(loc='upper left')
-    plt.show()
+# cmap = plt.get_cmap("tab20")
+# for c in range(0,max(module_labels)+1):
+#     print("array:", c)
+#     fig, ax = plt.subplots(facecolor="w")
+#     data = array_clusters_temperature[c]
+#     pred = array_clf[c].predict(data)
+#     plt.scatter(data[:, 0], data[:, 1], color=cmap(pred+1))
+#     ax.legend(loc='upper left')
+#     plt.show()
