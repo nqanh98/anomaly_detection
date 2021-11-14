@@ -202,7 +202,8 @@ class Modules():
     
     def extract_modules(self, img, output_dir_path):
         #mult = 1.2   # I wanted to show an area slightly larger than my min rectangle set this to one if you don't
-        mult = 1.0   # I wanted to show an area slightly larger than my min rectangle set this to one if you don't
+        #mult = 1.0   # I wanted to show an area slightly larger than my min rectangle set this to one if you don't
+        mult = 0.9   # I wanted to show an area slightly larger than my min rectangle set this to one if you don't
         img_box = img.copy()
         #img_box = cv2.cvtColor(im_con.copy(), cv2.COLOR_GRAY2BGR)
         filePath = output_dir_path+"/modules/"
