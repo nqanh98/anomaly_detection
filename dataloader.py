@@ -41,7 +41,6 @@ class ThermalData:
         if scale_type == "individual":
             scaled_temperature = {
                 k: preprocessing.RobustScaler().fit_transform(v.reshape(-1,3)) for k, v in thermal_img_files.items() # scale individualy
-                #k: preprocessing.RobustScaler().fit_transform(v.reshape(-1,3)) for k, v in transformed_temperature.items() # scale individualy
             }
         elif scale_type == "all":
             rscaler = preprocessing.RobustScaler()
@@ -59,7 +58,8 @@ class ThermalData:
         for y in range(data.shape[0]):
             for x in range(data.shape[1]):
                 idx = y * data.shape[1] + x
-                data_with_index.append([*data[y][x], y, x])            
+                data_with_index.append([*data[y][x], y, x])
+                #data_with_index.append([np.mean([*data[y][x]]), y, x])            
         return np.array(data_with_index)
         
     def transforms_with_index(self, thermal_img_files, scale_type):
@@ -72,7 +72,6 @@ class ThermalData:
         # -- 1d scaled flatten thermal data with index --
         if scale_type == "individual":
             scaled_temperature_with_index = {
-                #k: rscaler.fit_transform(self.get_data_with_index(v)) for k, v in thermal_img_files.items()
                 k: preprocessing.RobustScaler().fit_transform(self.get_data_with_index(v)) for k, v in thermal_img_files.items()
             }
         elif scale_type == "all":
