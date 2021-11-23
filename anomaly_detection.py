@@ -49,21 +49,20 @@ def get_max_num_hot_pixel_in_long_axis(hot_pixels):
     axis = np.argmax(hot_pixels.shape)
     return max(np.sum(hot_pixels,axis=axis))
 
-def get_hot_counts(hot_clusters, hot_pixels, clusters):
-    cluster_2dmap = clusters.labels.reshape(*hot_pixels.shape[:2])
-    pos_hot_clusters = []
-    for c in np.where(hot_clusters==True)[0]:
-        pos_hot_clusters.extend(np.stack(np.where(cluster_2dmap == c), axis=1))
+def get_hot_counts(hot_pixels, clusters):
+    cluster_2dmap = clusters.labels.reshape(hot_pixels.shape) + 1
+    cluster_2dmap = cluster_2dmap * hot_pixels
+    pos_hot_clusters = np.stack(np.where(cluster_2dmap > 0), axis=1)        
     if len(pos_hot_clusters) > 0:
         Z = linkage(pdist(pos_hot_clusters), 'single')
         merged_hot_clusters = fcluster(Z, 1.0, criterion='distance')
         hot_counts = max(merged_hot_clusters)
     else:
-        hot_counts = sum(hot_clusters)
+        hot_counts = 0
     return hot_counts
     
 def detect_module_type(hot_clusters, hot_pixels, clusters):
-    hot_counts = get_hot_counts(hot_clusters, hot_pixels, clusters)
+    hot_counts = get_hot_counts(hot_pixels, clusters)
     n_hot_pixel_in_long_axis = get_max_num_hot_pixel_in_long_axis(hot_pixels)
     if hot_pixels.mean() >= 0.8:
         module_type = "Module-Anomaly"        
