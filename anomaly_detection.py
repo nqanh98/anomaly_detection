@@ -3,7 +3,8 @@ import matplotlib.pyplot as plt
 from scipy import stats
 from sklearn.mixture import GaussianMixture
 import itertools
-from scipy.spatial import distance
+from scipy.spatial.distance import pdist
+from scipy.cluster.hierarchy import dendrogram, linkage, fcluster
 
 temperature_classes = ["Very High", "High", "Medium", "Low", "Exception"]
 
@@ -47,21 +48,22 @@ class AnoGMM:
 def get_max_num_hot_pixel_in_long_axis(hot_pixels):
     axis = np.argmax(hot_pixels.shape)
     return max(np.sum(hot_pixels,axis=axis))
+
+def get_hot_counts(hot_clusters, hot_pixels, clusters):
+    cluster_2dmap = clusters.labels.reshape(*hot_pixels.shape[:2])
+    pos_hot_clusters = []
+    for c in np.where(hot_clusters==True)[0]:
+        pos_hot_clusters.extend(np.stack(np.where(cluster_2dmap == c), axis=1))
+    if len(pos_hot_clusters) > 0:
+        Z = linkage(pdist(pos_hot_clusters), 'single')
+        merged_hot_clusters = fcluster(Z, 1.0, criterion='distance')
+        hot_counts = max(merged_hot_clusters)
+    else:
+        hot_counts = sum(hot_clusters)
+    return hot_counts
     
 def detect_module_type(hot_clusters, hot_pixels, clusters):
-
-    cluster_id = np.full(len(hot_clusters),-1)
-    cluster_1dmap = np.array([c if c in np.where(hot_clusters==True)[0] else -1 for c in clusters.labels ])
-    cluster_2dmap = cluster_1dmap.reshape(*hot_pixels.shape[:2],1)
-    
-    for pair in itertools.combinations(np.where(hot_clusters==True)[0], 2):
-        pos1 = np.stack(np.where(cluster_2dmap==pair[0])[:2], axis=1)
-        pos2 = np.stack(np.where(cluster_2dmap==pair[1])[:2], axis=1)
-        print(pair,distance.cdist(pos1,pos2).min())
-        if distance.cdist(pos1,pos2).min() <= 1:
-            
-    
-    hot_counts = sum(hot_clusters)
+    hot_counts = get_hot_counts(hot_clusters, hot_pixels, clusters)
     n_hot_pixel_in_long_axis = get_max_num_hot_pixel_in_long_axis(hot_pixels)
     if hot_pixels.mean() >= 0.8:
         module_type = "Module-Anomaly"        
@@ -74,7 +76,6 @@ def detect_module_type(hot_clusters, hot_pixels, clusters):
     else:
         module_type = "Normal"
     return module_type    
-
 
 # clusters temperature 
 # array_clusters_temperature = {}
@@ -89,7 +90,6 @@ def detect_module_type(hot_clusters, hot_pixels, clusters):
 #         original_clusters_temperature = np.stack([np.uint8(t.mean(axis=0)) for t in sliced_data])
 #         tmp.append(original_clusters_temperature)
 #     array_clusters_temperature[c] = np.vstack(tmp)
-
 
 # # lof model
 # array_clf = {}
