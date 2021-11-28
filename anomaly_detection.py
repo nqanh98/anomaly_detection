@@ -53,7 +53,7 @@ def get_hot_counts(hot_pixels, clusters):
     cluster_2dmap = clusters.labels.reshape(hot_pixels.shape) + 1
     cluster_2dmap = cluster_2dmap * hot_pixels
     pos_hot_clusters = np.stack(np.where(cluster_2dmap > 0), axis=1)        
-    if len(pos_hot_clusters) > 0:
+    if len(pos_hot_clusters) > 1:
         Z = linkage(pdist(pos_hot_clusters), 'single')
         merged_hot_clusters = fcluster(Z, 1.0, criterion='distance')
         hot_counts = max(merged_hot_clusters)
@@ -61,7 +61,7 @@ def get_hot_counts(hot_pixels, clusters):
         hot_counts = 0
     return hot_counts
     
-def detect_module_type(hot_clusters, hot_pixels, clusters):
+def detect_module_type(hot_pixels, clusters):
     hot_counts = get_hot_counts(hot_pixels, clusters)
     n_hot_pixel_in_long_axis = get_max_num_hot_pixel_in_long_axis(hot_pixels)
     if hot_pixels.mean() >= 0.8:
