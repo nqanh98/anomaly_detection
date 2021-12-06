@@ -68,7 +68,7 @@ def remove_useless_clusters(hot_pixels):
         circularity = 4 * np.pi * area / peri**2 if peri > 0 else 0 
         waveness_shape_factor = peri_cnv / peri if peri > 0 else 0
         print(area, peri, circularity, waveness_shape_factor)        
-        if area < 8.0: # remove small clusters
+        if area < 4.0: # remove small clusters
             #cv2.drawContours(gray, cnt, -1, color=(0,0,0), thickness=-1)            
             cv2.drawContours(gray, [box], -1, color=(0,0,0), thickness=1)
             cv2.drawContours(gray, [box], -1, color=(0,0,0), thickness=-1)
@@ -76,7 +76,7 @@ def remove_useless_clusters(hot_pixels):
             #cv2.drawContours(gray, cnt, -1, color=(0,0,0), thickness=-1)                        
             cv2.drawContours(gray, [box], -1, color=(0,0,0), thickness=1)
             cv2.drawContours(gray, [box], -1, color=(0,0,0), thickness=-1)
-        if waveness_shape_factor < 0.8: # remove non-convex clusters
+        if waveness_shape_factor < 0.7: # remove non-convex clusters
             #cv2.drawContours(gray, cnt, -1, color=(0,0,0), thickness=-1)            
             cv2.drawContours(gray, [box], -1, color=(0,0,0), thickness=-1)
             cv2.drawContours(gray, [box], -1, color=(0,0,0), thickness=1)            
@@ -108,6 +108,8 @@ def get_hotspots_by_models(
     hot_pixels = hot_pixels.reshape(*img_file.shape[:2],1) 
     return hot_pixels, hot_clusters
 
+from scipy.stats import trim_mean
+
 class AnoModels():
     def __init__(self):
         self.gamma = 1.5
@@ -116,15 +118,18 @@ class AnoModels():
         self.isof = {}; self.isof_gamma = {}
 
     def get_offset(self,thermal_data,module_labels):
-        mean_temperatures = np.array(
-            [ thermal_data[c].all_temperature.mean() for c in range(0,max(module_labels)+1) ]
+        x = np.array(
+            #[ thermal_data[c].all_temperature.mean() for c in range(0,max(module_labels)+1) ]
+            #[ np.median(thermal_data[c].all_temperature) for c in range(0,max(module_labels)+1) ]
+            [ trim_mean(thermal_data[c].all_temperature,0.2) for c in range(0,max(module_labels)+1) ]
         ).reshape(-1,1)
-        mscaler = MinMaxScaler([-0.5,2.0])
+        #mscaler = MinMaxScaler([-0.5,2.0])
+        mscaler = MinMaxScaler([-0.2,1.0])
         #mscaler = MinMaxScaler([-0.5,3.0])
-        x = mscaler.fit_transform(mean_temperatures)
-        offset = x / max(x)
-        #offset = np.zeros(len(x))
-        #fig = plt.figure(facecolor="w")
+        z = mscaler.fit_transform(x)
+        offset = z / max(z)
+        #offset = np.zeros(len(z))
+        #fig = plt.figure(fac]ecolor="w")
         #plt.scatter(x,offset)
         #plt.show()
         return offset
@@ -140,7 +145,7 @@ class AnoModels():
             # -- Local Outlier Factor --
             lof = LocalOutlierFactor(n_neighbors=n_modules, contamination="auto", novelty=True)
             self.lof[c] = lof.fit(thermal_data[c].clusters_temperature)
-            self.lof[c].offset_ = -1.5 - 1.5 * self.offset[c] # default: -1.5
+            self.lof[c].offset_ = -1.6 - 0.5 * self.offset[c] # default: -1.5
             #lof_gamma = LocalOutlierFactor(n_neighbors=n_modules, contamination="auto", novelty=True)
             #self.lof_gamma[c] = lof_gamma.fit(
             #    utils.gamma_correction(thermal_data[c].clusters_temperature, gamma=self.gamma)
@@ -149,7 +154,7 @@ class AnoModels():
             # -- Isolation Forest --
             isof = IsolationForest(contamination="auto")
             self.isof[c] = isof.fit(thermal_data[c].clusters_temperature)
-            self.isof[c].offset_ = -0.6 - 0.3 * self.offset[c] # default: -0.5
+            self.isof[c].offset_ = -0.6 - 0.2 * self.offset[c] # default: -0.5
             #isof_gamma = IsolationForest(contamination="auto")            
             #self.isof_gamma[c] = isof_gamma.fit(
             #    utils.gamma_correction(thermal_data[c].clusters_temperature, gamma=self.gamma) 

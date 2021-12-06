@@ -5,7 +5,7 @@ from xmeans import XMeans
 from star_clustering import StarCluster
 
 class TemperatureClusters:
-    def __init__(self, data, n_clusters=10, method="kmeans"):
+    def __init__(self, data, n_clusters=8, method="kmeans"):
         self.method = method
         if method == "xmeans":
             self.model = self.get_xmeans_model(data)
