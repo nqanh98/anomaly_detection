@@ -4,12 +4,13 @@ import os
 import numpy as np
 import pandas as pd
 import cv2
+import matplotlib
 import matplotlib.pyplot as plt
 import glob
 import json
 from sklearn.cluster import KMeans, DBSCAN
 
-import contours_extractor
+import contours_extractor # Please replace with latest modules 
 
 def get_thermal_data(thermal_npdat_path):
     thermal_npdat_list = glob.glob(thermal_npdat_path + "/*.tif")
@@ -60,6 +61,36 @@ def show_img(img_dict, cmap=None, figsize=(12,12)):
             ax[i].imshow(v)
         ax[i].set_title(k)
     fig.show()
+
+def plot_module_map_with_labels(img, module_contours, module_labels):
+    fig, ax = plt.subplots(facecolor="w", figsize=(25,20))
+    colors = list(matplotlib.colors.XKCD_COLORS.items())[:max(module_labels)+1]
+    module_centers = np.array( [c.mean(axis=0) for c in module_contours] )
+    for i in range(-1,max(module_labels)+1):
+        data = module_centers[module_labels == i]
+        plt.scatter(data[:, 0], data[:, 1], color=colors[i][1], label=str(i))
+    ax.legend(loc='upper left')
+    ax.set_xlim([0, img.shape[1]])
+    ax.set_ylim([img.shape[0], 0])
+    plt.show()
+
+def split_module_labels(module_contours, module_labels, desired_cluster_size=50):
+    splitted_module_labels = module_labels
+    module_centers = np.array( [c.mean(axis=0) for c in module_contours] )
+    for i in range(max(splitted_module_labels)+1):
+        # coordinates for target label
+        data = module_centers[splitted_module_labels == i]
+        if len(data) >= 2*desired_cluster_size:
+            # clustering by K-means
+            model = KMeans(
+                n_clusters = int(len(data)/desired_cluster_size)
+            ).fit(data)
+            # new labels for target
+            new_labels = np.where(model.labels_ > 0, 
+                                  model.labels_ + max(splitted_module_labels), i)
+            # replace with new labels
+            splitted_module_labels[np.where(splitted_module_labels == i)] = new_labels
+    return splitted_module_labels    
 
 class Filters():
 
@@ -131,7 +162,6 @@ class Filters():
                                                                               aspect_max=self.aspect_max)
         return modules_contours
 
-    
 class Modules():
 
     def __init__(self, module_contours):
@@ -256,7 +286,7 @@ class Modules():
             #cv2.drawContours(img_box, [box], 0, (0,255,0), 2) # this was mostly for debugging you may omit
             #plt.imshow(img_box,cmap='gray')
             #plt.show()    
-            
+
 if __name__ == "__main__":
 
     # 分析対象の指定
