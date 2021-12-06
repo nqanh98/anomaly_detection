@@ -72,7 +72,7 @@ def remove_useless_clusters(hot_pixels):
             #cv2.drawContours(gray, cnt, -1, color=(0,0,0), thickness=-1)            
             cv2.drawContours(gray, [box], -1, color=(0,0,0), thickness=1)
             cv2.drawContours(gray, [box], -1, color=(0,0,0), thickness=-1)
-        if circularity < 0.3: # remove except circles and squares
+        if circularity < 0.25: # remove except circles and squares
             #cv2.drawContours(gray, cnt, -1, color=(0,0,0), thickness=-1)                        
             cv2.drawContours(gray, [box], -1, color=(0,0,0), thickness=1)
             cv2.drawContours(gray, [box], -1, color=(0,0,0), thickness=-1)
@@ -119,7 +119,8 @@ class AnoModels():
         mean_temperatures = np.array(
             [ thermal_data[c].all_temperature.mean() for c in range(0,max(module_labels)+1) ]
         ).reshape(-1,1)
-        mscaler = MinMaxScaler([-0.5,1.0])
+        mscaler = MinMaxScaler([-0.5,2.0])
+        #mscaler = MinMaxScaler([-0.5,3.0])
         x = mscaler.fit_transform(mean_temperatures)
         offset = x / max(x)
         #offset = np.zeros(len(x))
@@ -139,7 +140,7 @@ class AnoModels():
             # -- Local Outlier Factor --
             lof = LocalOutlierFactor(n_neighbors=n_modules, contamination="auto", novelty=True)
             self.lof[c] = lof.fit(thermal_data[c].clusters_temperature)
-            self.lof[c].offset_ = -1.5 - 0.5 * self.offset[c] # default: -1.5
+            self.lof[c].offset_ = -1.5 - 1.5 * self.offset[c] # default: -1.5
             #lof_gamma = LocalOutlierFactor(n_neighbors=n_modules, contamination="auto", novelty=True)
             #self.lof_gamma[c] = lof_gamma.fit(
             #    utils.gamma_correction(thermal_data[c].clusters_temperature, gamma=self.gamma)
@@ -148,7 +149,7 @@ class AnoModels():
             # -- Isolation Forest --
             isof = IsolationForest(contamination="auto")
             self.isof[c] = isof.fit(thermal_data[c].clusters_temperature)
-            self.isof[c].offset_ = -0.6 - 0.1 * self.offset[c] # default: -0.5
+            self.isof[c].offset_ = -0.6 - 0.3 * self.offset[c] # default: -0.5
             #isof_gamma = IsolationForest(contamination="auto")            
             #self.isof_gamma[c] = isof_gamma.fit(
             #    utils.gamma_correction(thermal_data[c].clusters_temperature, gamma=self.gamma) 
