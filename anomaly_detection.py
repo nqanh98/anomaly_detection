@@ -19,10 +19,44 @@ def get_max_num_hot_pixel_in_long_axis(hot_pixels):
     long_axis = np.argmax(hot_pixels.shape)
     return max(np.sum(hot_pixels,axis=long_axis))
 
+def get_junction_box_fields(hot_pixels):
+    long_axis, short_axis = np.argmax(hot_pixels.shape[:-1]), np.argmin(hot_pixels.shape[:-1])
+    long_offset = int(hot_pixels.shape[long_axis] * 0.2)
+    short_offset = int(hot_pixels.shape[short_axis] * 0.3)
+    #print(long_offset, short_offset)
+    edge1, edge2 = int(hot_pixels.shape[short_axis]/2 - short_offset), int(hot_pixels.shape[short_axis]/2 + short_offset)
+    junction_box_fields = np.zeros(hot_pixels.shape)
+    if long_axis == 0:
+        junction_box_fields[ :long_offset, edge1:edge2, :] = 1
+        junction_box_fields[-long_offset:, edge1:edge2, :] = 1
+    elif long_axis == 1:
+        junction_box_fields[edge1:edge2,  :long_offset, :] = 1
+        junction_box_fields[edge1:edge2, -long_offset:, :] = 1
+    return junction_box_fields
+
+def get_flag_cluster_anomaly(hot_pixels):
+    n_hot_pixel_in_long_axis = get_max_num_hot_pixel_in_long_axis(hot_pixels)
+    #if n_hot_pixel_in_long_axis == max(hot_pixels.shape):
+    offset = 3
+    if n_hot_pixel_in_long_axis > max(hot_pixels.shape) - offset:
+        return True
+    else:
+        return False
+
+def get_flag_junction_box_error(hot_pixels):
+    junction_box_fields = get_junction_box_fields(hot_pixels)
+    #if (hot_pixels == hot_pixels * junction_box_fields).all():
+    count_diff = np.sum(hot_pixels != hot_pixels * junction_box_fields)
+    print(count_diff)
+    if count_diff < 12:
+        return True
+    else:
+        return False
+        
 def get_hot_counts(hot_pixels, clusters):
     cluster_2dmap = clusters.labels.reshape(hot_pixels.shape) + 1
     cluster_2dmap = cluster_2dmap * hot_pixels
-    pos_hot_clusters = np.stack(np.where(cluster_2dmap > 0), axis=1)        
+    pos_hot_clusters = np.stack(np.where(cluster_2dmap > 0), axis=1)
     if len(pos_hot_clusters) > 1:
         Z = linkage(pdist(pos_hot_clusters), 'single')
         merged_hot_clusters = fcluster(Z, 1.0, criterion='distance')
@@ -33,11 +67,14 @@ def get_hot_counts(hot_pixels, clusters):
     
 def detect_module_type(hot_pixels, clusters):
     hot_counts = get_hot_counts(hot_pixels, clusters)
-    n_hot_pixel_in_long_axis = get_max_num_hot_pixel_in_long_axis(hot_pixels)
+    flag_cluster_anomaly = get_flag_cluster_anomaly(hot_pixels)
+    flag_junction_box_error = get_flag_junction_box_error(hot_pixels)
     if hot_pixels.mean() >= 0.8:
         module_type = "Module-Anomaly"        
-    elif hot_pixels.mean() >= 0.25 and n_hot_pixel_in_long_axis == max(hot_pixels.shape):
+    elif flag_cluster_anomaly and hot_pixels.mean() >= 0.25:
         module_type = "Cluster-Anomaly"
+    elif flag_junction_box_error and hot_counts > 0:
+        module_type = "Junction-Box-Error"
     elif hot_counts >= 2:
         module_type = "Multi-Hotspots"        
     elif hot_counts == 1:
@@ -82,7 +119,6 @@ def remove_useless_clusters(hot_pixels):
             cv2.drawContours(gray, [box], -1, color=(0,0,0), thickness=-1)
             cv2.drawContours(gray, [box], -1, color=(0,0,0), thickness=1)            
     return gray
-
 
 def get_hotspots_by_zscore(
         clusters_temperature, img_file, clusters, threshold=3.0, log=False):
