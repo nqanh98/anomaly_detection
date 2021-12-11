@@ -45,10 +45,11 @@ def get_flag_cluster_anomaly(hot_pixels):
 
 def get_flag_junction_box_error(hot_pixels):
     junction_box_fields = get_junction_box_fields(hot_pixels)
+    junction_box_pixels = hot_pixels * junction_box_fields
+    count_diff = np.sum(hot_pixels != junction_box_pixels)
     #if (hot_pixels == hot_pixels * junction_box_fields).all():
-    count_diff = np.sum(hot_pixels != hot_pixels * junction_box_fields)
-    print(count_diff)
-    if count_diff < 12:
+    print( np.sum(junction_box_pixels), count_diff)
+    if np.sum(junction_box_pixels) > 4 and count_diff < 12:
         return True
     else:
         return False
@@ -69,7 +70,7 @@ def detect_module_type(hot_pixels, clusters):
     hot_counts = get_hot_counts(hot_pixels, clusters)
     flag_cluster_anomaly = get_flag_cluster_anomaly(hot_pixels)
     flag_junction_box_error = get_flag_junction_box_error(hot_pixels)
-    if hot_pixels.mean() >= 0.8:
+    if hot_pixels.mean() >= 0.5:
         module_type = "Module-Anomaly"        
     elif flag_cluster_anomaly and hot_pixels.mean() >= 0.25:
         module_type = "Cluster-Anomaly"
@@ -163,7 +164,7 @@ class AnoModels():
         #mscaler = MinMaxScaler([-0.5,3.0])
         z = mscaler.fit_transform(x)
         offset = z / max(z)
-        #offset = np.zeros(len(z))
+        #offset = np.zeros(len(x))
         #fig = plt.figure(fac]ecolor="w")
         #plt.scatter(x,offset)
         #plt.show()
@@ -172,27 +173,33 @@ class AnoModels():
     def fit(self,thermal_data,module_labels):
         self.offset = self.get_offset(thermal_data,module_labels)
         for c in tqdm(range(0,max(module_labels)+1)):
-            n_modules = len(thermal_data[c].temperature)
+            # -- temperatures -- 
+            n_modules = 100
+            all_temperature = thermal_data[c].all_temperature
+            clusters_temperature = thermal_data[c].clusters_temperature
+            #min_threshold = np.quantile(clusters_temperature,0.1)
             # -- Zscaler --
             self.zscaler[c] = preprocessing.RobustScaler().fit(
-                utils.gamma_correction(thermal_data[c].all_temperature, gamma=self.gamma)
+                utils.gamma_correction(all_temperature, gamma=self.gamma)
             )
             # -- Local Outlier Factor --
             lof = LocalOutlierFactor(n_neighbors=n_modules, contamination="auto", novelty=True)
-            self.lof[c] = lof.fit(thermal_data[c].clusters_temperature)
+            self.lof[c] = lof.fit(clusters_temperature)
+            #self.lof[c] = lof.fit(clusters_temperature[clusters_temperature > min_threshold].reshape(-1,3))
             self.lof[c].offset_ = -1.6 - 0.5 * self.offset[c] # default: -1.5
             #lof_gamma = LocalOutlierFactor(n_neighbors=n_modules, contamination="auto", novelty=True)
             #self.lof_gamma[c] = lof_gamma.fit(
-            #    utils.gamma_correction(thermal_data[c].clusters_temperature, gamma=self.gamma)
+            #    utils.gamma_correction(clusters_temperature, gamma=self.gamma)
             #)
             #self.lof_gamma[c].offset_ = -1.5 - 0.5 * self.offset[c] # default: -1.5
             # -- Isolation Forest --
             isof = IsolationForest(contamination="auto")
-            self.isof[c] = isof.fit(thermal_data[c].clusters_temperature)
+            self.isof[c] = isof.fit(clusters_temperature)
+            #self.isof[c] = isof.fit(clusters_temperature[clusters_temperature > min_threshold].reshape(-1,3))
             self.isof[c].offset_ = -0.6 - 0.2 * self.offset[c] # default: -0.5
             #isof_gamma = IsolationForest(contamination="auto")            
             #self.isof_gamma[c] = isof_gamma.fit(
-            #    utils.gamma_correction(thermal_data[c].clusters_temperature, gamma=self.gamma) 
+            #    utils.gamma_correction(clusters_temperature, gamma=self.gamma) 
             #)
             #self.isof_gamma[c].offset_ = -0.6 - 0.1 * self.offset[c] # default: -0.5
 

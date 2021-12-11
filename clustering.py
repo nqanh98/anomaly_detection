@@ -1,8 +1,8 @@
 
 import numpy as np
 from sklearn.cluster import KMeans, DBSCAN
-from xmeans import XMeans
-from star_clustering import StarCluster
+from lib.xmeans import XMeans
+from lib.star_clustering import StarCluster
 
 class TemperatureClusters:
     def __init__(self, data, n_clusters=8, method="kmeans"):
@@ -52,4 +52,3 @@ class TemperatureClusters:
             cluster = np.array([d for l, d in zip(self.labels,data) if l==n])
             clusters.append(cluster)
         return clusters
-        #return [data[self.labels==n] for n in range(self.n_clusters)]

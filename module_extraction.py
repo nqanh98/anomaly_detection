@@ -39,7 +39,7 @@ def get_rect_info(rect):
         width, height = vec1_len, vec2_len
         vecw = vec1
 
-        # x 軸と長辺のなす角を計算する。
+    # x 軸と長辺のなす角を計算する。
     if np.isclose(vecw[0], 0):
         angle = 0
     else:
