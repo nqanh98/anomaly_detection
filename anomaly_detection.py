@@ -11,12 +11,13 @@ from sklearn.ensemble import IsolationForest
 from sklearn import preprocessing
 from sklearn.preprocessing import MinMaxScaler
 from tqdm import tqdm
+from scipy.stats import trim_mean
 
 import utils
 
 def get_max_num_hot_pixel_in_long_axis(hot_pixels):
-    axis = np.argmax(hot_pixels.shape)
-    return max(np.sum(hot_pixels,axis=axis))
+    long_axis = np.argmax(hot_pixels.shape)
+    return max(np.sum(hot_pixels,axis=long_axis))
 
 def get_hot_counts(hot_pixels, clusters):
     cluster_2dmap = clusters.labels.reshape(hot_pixels.shape) + 1
@@ -35,7 +36,7 @@ def detect_module_type(hot_pixels, clusters):
     n_hot_pixel_in_long_axis = get_max_num_hot_pixel_in_long_axis(hot_pixels)
     if hot_pixels.mean() >= 0.8:
         module_type = "Module-Anomaly"        
-    elif hot_pixels.mean() >= 1.0/4.0 and n_hot_pixel_in_long_axis == max(hot_pixels.shape):
+    elif hot_pixels.mean() >= 0.25 and n_hot_pixel_in_long_axis == max(hot_pixels.shape):
         module_type = "Cluster-Anomaly"
     elif hot_counts >= 2:
         module_type = "Multi-Hotspots"        
@@ -107,8 +108,6 @@ def get_hotspots_by_models(
     hot_pixels = np.array([1 if c in np.where(hot_clusters==True)[0] else 0 for c in clusters.labels])    
     hot_pixels = hot_pixels.reshape(*img_file.shape[:2],1) 
     return hot_pixels, hot_clusters
-
-from scipy.stats import trim_mean
 
 class AnoModels():
     def __init__(self):
