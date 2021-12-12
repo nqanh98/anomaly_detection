@@ -33,9 +33,6 @@ color_list = {
 ```
 
 ## Source codes
-- images (分析対象の画像データ)
-  - ortho/
-    - 分析用のオルソ画像をここに置いてください
 - notebooks (実行用のノートブック)
   - test_module_extraction.ipynb
     - モジュール検出用のノートブック
@@ -62,8 +59,6 @@ color_list = {
 - params (モジュール検出用のパラメータ)
   - upper_lim_pix_val.npy
   - lower_lim_pix_val.npy
-- outputs (結果の出力先)
-- old（不要コードの置き場）
 
 ## Parameters
 異常検知 (anomaly_detection.py) における各種パラメータの説明</br>
@@ -71,30 +66,30 @@ color_list = {
 ### HotspotDetectors
 ホットスポットの検出</br>
 - gamma
-  - (default: 1.5)
+  - ガンマ補正の係数(default: 1.5)
 - alpha_lof
-  - (default: -1.6)
+  - Local Outlier Factorモデルにおける温度補正項のパラメータその１(default: -1.6)
 - beta_lof
-  - (default: 0.5)
+  - Local Outlier Factorモデルにおける温度補正項のパラメータその２(default: 0.5)
 - alpha_isof
-  - (default: -0.6)
+  - Isolation Forestモデルにおける温度補正項のパラメータその１(default: -0.6)
 - beta_isof
-  - (default: 0.2)
+  - Isolation Forestモデルにおける温度補正項のパラメータその２(default: 0.2)
  
 ### AnomalyTypeClassifier
 ホットスポットの形状分析</br>
 - min_hotspot_size
-  - (default: 4)
+  - ホットスポットの最小サイズ、これ以下のクラスタはホットスポットから除外する(default: 4)
 - min_circularity
-  - (default: 0.25)
+  - ホットスポットの最小真円度、これ以下のクラスタはホットスポットから除外する(default: 0.25)
 - min_waveness_shape_factor
-  - (default: 0.7)
+  - ホットスポットの最小wavensss shape factor、これ以下のクラスタはホットスポットから除外する(default: 0.7)
 
 異常タイプの分類</br>
 - min_module_anomaly_size
-  - (default: 0.5)
+  - モジュールのホットスポットの割合がこの値以上の時、モジュール異常と判定される(default: 0.5)
 - min_cluster_anomaly_size
-  - (default: 0.25)
+  - モジュールのホットスポットの割合がこの値以上かつ縦長のホットスポットの時、クラスタ異常と判定される(default: 0.25)
 - gamma
   - (default: 3.0)
 - min_zscore
@@ -106,4 +101,4 @@ color_list = {
 - junction_box_offset_count
   - (default: 12)
 - cluster_anomaly_offset
-  - (default: 0.1)
+  - クラスタ異常と判定する際のオフセット(default: 0.1)
