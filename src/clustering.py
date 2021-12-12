@@ -4,8 +4,8 @@ from sklearn.cluster import KMeans, DBSCAN
 import sys
 
 sys.path.append("../lib")
-from lib.xmeans import XMeans
-from lib.star_clustering import StarCluster
+from xmeans import XMeans
+from star_clustering import StarCluster
 
 class TemperatureClusters:
     def __init__(self, data, n_clusters=8, method="kmeans"):

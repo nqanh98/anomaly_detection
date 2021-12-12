@@ -10,7 +10,7 @@ def gamma_correction(x, gamma=1, x_max=None):
     return np.clip(pow(x / x_max, gamma) * 255.0, 0, 255).astype(int)
 
 def show_img(img_dict, vmin=0, vmax=255, cmap=None, figsize=(12,4)):
-    fig = plt.figure(figsize=(12,4),facecolor="w")
+    fig = plt.figure(figsize=figsize,facecolor="w")
     n = len(img_dict)
     ax = {}
     for i, (k, v) in enumerate(img_dict.items()):

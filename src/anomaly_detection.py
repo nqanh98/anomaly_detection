@@ -85,8 +85,8 @@ class AnomalyTypeClassifier():
         self.min_circularity = 0.25
         self.min_waveness_shape_factor = 0.7
         # -- anomaly type features --
-        self.min_module_anomaly_size = 0.5
-        self.min_cluster_anomaly_size = 0.25
+        self.min_module_anomaly_ratio = 0.5
+        self.min_cluster_anomaly_ratio = 0.25
         # -- RobustZscore --
         self.gamma = 3.0
         self.min_zscore = 3.0        
@@ -208,9 +208,9 @@ class AnomalyTypeClassifier():
         hot_counts = self.get_hot_counts(hot_pixels, clusters)
         flag_cluster_anomaly = self.get_flag_cluster_anomaly(hot_pixels)
         flag_junction_box_error = self.get_flag_junction_box_error(hot_pixels)
-        if hot_pixels.mean() >= self.min_module_anomaly_size:
+        if hot_pixels.mean() >= self.min_module_anomaly_ratio:
             module_type = "Module-Anomaly"        
-        elif flag_cluster_anomaly and hot_pixels.mean() >= self.min_cluster_anomaly_size:
+        elif flag_cluster_anomaly and hot_pixels.mean() >= self.min_cluster_anomaly_ratio:
             module_type = "Cluster-Anomaly"
         elif flag_junction_box_error and hot_counts > 0:
             module_type = "Junction-Box-Error"
