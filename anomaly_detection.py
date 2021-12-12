@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import matplotlib.pyplot as plt
 import cv2
@@ -44,8 +45,8 @@ def get_flag_junction_box_error(hot_pixels):
     junction_box_fields = get_junction_box_fields(hot_pixels)
     junction_box_pixels = hot_pixels * junction_box_fields
     count_diff = np.sum(hot_pixels != junction_box_pixels)
-    #if (hot_pixels == hot_pixels * junction_box_fields).all():
-    print( np.sum(junction_box_pixels), count_diff)
+    #print( np.sum(junction_box_pixels), count_diff)
+    #if (hot_pixels == hot_pixels * junction_box_fields).all():    
     if np.sum(junction_box_pixels) > 4 and count_diff < 12:
         return True
     else:
@@ -81,16 +82,6 @@ def detect_module_type(hot_pixels, clusters):
         module_type = "Normal"
     return module_type    
 
-def show_modules(img_dict, vmin=0, vmax=255):
-    fig = plt.figure(figsize=(12,4),facecolor="w")
-    n = len(img_dict)
-    ax = {}
-    for i, (k, v) in enumerate(img_dict.items()):
-        ax[i] = fig.add_subplot(1,n,i+1)
-        ax[i].imshow(v, vmin=vmin, vmax=vmax)
-        ax[i].set_title(k)
-    plt.show()
-
 def remove_useless_clusters(hot_pixels):
     gray = hot_pixels.astype(np.uint8)
     #contours, hierarchy = cv2.findContours(gray, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
@@ -103,7 +94,7 @@ def remove_useless_clusters(hot_pixels):
         peri_cnv = cv2.arcLength(cv2.convexHull(cnt), True)
         circularity = 4 * np.pi * area / peri**2 if peri > 0 else 0 
         waveness_shape_factor = peri_cnv / peri if peri > 0 else 0
-        print(area, peri, circularity, waveness_shape_factor)        
+        #print(area, peri, circularity, waveness_shape_factor)        
         if area < 4.0: # remove small clusters
             #cv2.drawContours(gray, cnt, -1, color=(0,0,0), thickness=-1)            
             cv2.drawContours(gray, [box], -1, color=(0,0,0), thickness=1)
@@ -136,13 +127,95 @@ def get_hotspots_by_models(
     # -- hot cluster --
     hot_clusters = (model.predict(clusters_temperature) < 0) \
         & (transformed_clusters_temperature.mean(axis=1) > 0)
-    print(model.score_samples(clusters_temperature))
-    print(model.offset_)
+    #print(model.score_samples(clusters_temperature))
+    #print(model.offset_)
     # -- hot pixel --
     hot_pixels = np.array([1 if c in np.where(hot_clusters==True)[0] else 0 for c in clusters.labels])    
     hot_pixels = hot_pixels.reshape(*img_file.shape[:2],1) 
     return hot_pixels, hot_clusters
 
+
+def get_clusters_temperature(clusters,temperature):
+    sliced_data = clusters.get_clusters_data(temperature)
+    clusters_temperature = np.stack([t.mean(axis=0).astype(temperature.dtype) for t in sliced_data])
+    return clusters_temperature
+
+def show_modules(img_dict, vmin=0, vmax=255):
+    fig = plt.figure(figsize=(12,4),facecolor="w")
+    n = len(img_dict)
+    ax = {}
+    for i, (k, v) in enumerate(img_dict.items()):
+        ax[i] = fig.add_subplot(1,n,i+1)
+        ax[i].imshow(v, vmin=vmin, vmax=vmax)
+        ax[i].set_title(k)
+    plt.show()
+
+def display_hotspots(thermal_img_file, clusters, anomodels, 
+                     clusters_temperature, module_type,
+                     hot_pixels, hot_pixels_module, hot_pixels_lof, hot_pixels_isof):
+    img_clustered = clusters_temperature[clusters.labels].reshape(thermal_img_file.shape)
+    img_hotspots = img_clustered * hot_pixels
+    img_hotspots_module = img_clustered * hot_pixels_module
+    img_hotspots_lof = img_clustered * hot_pixels_lof
+    img_hotspots_isof = img_clustered * hot_pixels_isof
+    if module_type not in ["Normal", "Junction-Box-Error"]:
+        show_modules({
+            "Original": thermal_img_file, 
+            "Gamma": utils.gamma_correction(
+                thermal_img_file, gamma=anomodels.gamma), 
+            "Hotspots": img_hotspots,
+            "module": img_hotspots_module,
+            "lof": img_hotspots_lof,
+            "isof": img_hotspots_isof,
+        })  
+
+def run_anomaly_detection(thermal_img_files, thermal_data, module_labels, anomodels, 
+                          input_dir_path, list_target_modules = None):
+    anomaly_modules = {}
+    os.makedirs(input_dir_path+"/hist/",exist_ok=True)
+    for n, k in enumerate(list(thermal_img_files)):    
+        # -- module label --
+        c = module_labels[n]
+        if c == -1: # skip non-grouped modules
+            pass
+        elif list_target_modules == None or k in list_target_modules:
+            # -- clustering --
+            clusters = thermal_data[c].clusters[k]
+            # -- temperatures -- 
+            temperature = thermal_data[c].temperature[k]
+            gamma_temperature = utils.gamma_correction(temperature, gamma=3.0)
+            scaled_temperature = preprocessing.RobustScaler().fit_transform(gamma_temperature)
+            # -- clusters temperatures --
+            clusters_temperature = get_clusters_temperature(clusters, temperature)
+            scaled_clusters_temperature = get_clusters_temperature(clusters, scaled_temperature)
+            # -- hot spot detection --    
+            #hot_pixels_group, _ = get_hotspots_by_zscore(
+            #    clusters_temperature, thermal_img_files[k], clusters, threshold=3.0, log=False)          
+            hot_pixels_module, _ = get_hotspots_by_zscore(
+                scaled_clusters_temperature, thermal_img_files[k], clusters, threshold=3.0, log=False)   
+            hot_pixels_lof, _ = get_hotspots_by_models(
+                clusters_temperature, scaled_clusters_temperature,
+                thermal_img_files[k], clusters, anomodels.lof[c], log=False)        
+            hot_pixels_isof, _ = get_hotspots_by_models(
+                clusters_temperature, scaled_clusters_temperature,
+                thermal_img_files[k], clusters, anomodels.isof[c], log=False)
+            # -- map to anomaly type  --
+            hot_pixels = (hot_pixels_module | hot_pixels_lof | hot_pixels_isof)
+            hot_pixels = remove_useless_clusters(
+                remove_useless_clusters(hot_pixels)) # doubly preformed just in case
+            module_type = detect_module_type(hot_pixels, clusters)          
+            print(k, module_type)            
+            # -- save anomaly modules --
+            if module_type not in anomaly_modules:
+                anomaly_modules[module_type] = [k]
+            else:
+                anomaly_modules[module_type].append(k)
+            # -- display -- 
+            display_hotspots(thermal_img_files[k], clusters, anomodels, 
+                                               clusters_temperature, module_type,
+                                               hot_pixels, hot_pixels_module, hot_pixels_lof, hot_pixels_isof)
+    return anomaly_modules
+        
 class AnoModels():
     def __init__(self):
         self.gamma = 1.5
