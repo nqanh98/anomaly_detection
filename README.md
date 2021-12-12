@@ -53,9 +53,9 @@ color_list = {
   - contours_extractor.py
     - モジュール検出用のライブラリ（白石コードに対応するもの）
   - xmeans.py
-    - X-meansの外部ライブラリ（テスト用に実装したもので、実際には使用しておりません）
+    - X-meansの外部ライブラリ（テスト用に実装したもので、現状は使用しておりません）
   - star_clustering.py
-    - Start clusteringの外部ライブラリ（テスト用に実装したもので、実際には使用しておりません）
+    - Start clusteringの外部ライブラリ（テスト用に実装したもので、現状は使用しておりません）
 - params (モジュール検出用のパラメータ)
   - upper_lim_pix_val.npy
   - lower_lim_pix_val.npy
@@ -66,7 +66,8 @@ color_list = {
 ### HotspotDetectors
 ホットスポットの検出</br>
 - gamma
-  - ガンマ補正の係数(default: 1.5)
+  - グループ単位のzスコアによるホットスポット検出モデルにおけるガンマ補正の係数(default: 1.5)
+  - （グループ単位のzスコアによるホットスポット検出モデルは、現状は使用しておりません）
 - alpha_lof
   - Local Outlier Factorモデルにおける温度補正項のパラメータその１(default: -1.6)
 - beta_lof
@@ -86,19 +87,19 @@ color_list = {
   - ホットスポットの最小wavensss shape factor、これ以下のクラスタはホットスポットから除外する(default: 0.7)
 
 異常タイプの分類</br>
-- min_module_anomaly_size
-  - モジュールのホットスポットの割合がこの値以上の時、モジュール異常と判定される(default: 0.5)
-- min_cluster_anomaly_size
-  - モジュールのホットスポットの割合がこの値以上かつ縦長のホットスポットの時、クラスタ異常と判定される(default: 0.25)
 - gamma
-  - (default: 3.0)
+  - モジュール単位のzスコアによるホットスポットスポット検出モデルにおけるガンマ補正の係数(default: 3.0)
 - min_zscore
-  - (default: 3.0)
-- junction_box_offset_long
-  - (default: 0.2)
-- junction_box_offset_short
-  - (default: 0.3)
-- junction_box_offset_count
-  - (default: 12)
+  - モジュール単位のzスコアにおいて異常と判定するzスコアの閾値　この値異常となるクラスタをホットスポットと判定する(default: 3.0)
+- min_module_anomaly_size
+  - モジュール異常に関する閾値　モジュールのホットスポットの割合がこの値以上の時、モジュール異常と判定される(default: 0.5)
+- min_cluster_anomaly_size
+  - クラスタ異常に関する閾値　モジュールのホットスポットの割合がこの値以上かつ縦長のホットスポットの時、クラスタ異常と判定される(default: 0.25)
 - cluster_anomaly_offset
-  - クラスタ異常と判定する際のオフセット(default: 0.1)
+  - クラスタ異常に関する閾値　クラスタ異常とみなす長さの指定に関係する(default: 0.1)  
+- junction_box_offset_long
+  - ジャンクションボックス異常に関する閾値　長軸方向のジャンクションボックス領域に関係する(default: 0.2)
+- junction_box_offset_short
+  - ジャンクションボックス異常に関する閾値　短軸方向のジャンクションボックス領域に関係する(default: 0.3)
+- junction_box_offset_count
+  - ジャンクションボックス異常に関する閾値　ジャンクションボックス領域からはみ出たものをどれくらい許容するかを指定する（default: 12)
