@@ -10,7 +10,7 @@ import glob
 import json
 from sklearn.cluster import KMeans, DBSCAN
 
-import contours_extractor # Please replace with latest modules 
+import lib.contours_extractor as extractor
 
 def get_thermal_data(thermal_npdat_path):
     thermal_npdat_list = glob.glob(thermal_npdat_path + "/*.tif")
@@ -139,27 +139,27 @@ class Filters():
     def get_module_contours(self, img):
         self.check_limit_data(img)
         
-        img_processed = contours_extractor.preprocessing(img, 
-                                                         self.upper_lim_pix_val, self.lower_lim_pix_val, 
-                                                         flip_flag = self.flip_flag, 
-                                                         clipLimit = self.clipLimit,
-                                                         tileGridSize = (self.tileGridSize, self.tileGridSize), 
-                                                         blur_kernel_size = (self.blur_kernel_size, self.blur_kernel_size), 
-                                                         bilateral_d = self.bilateral_d,
-                                                         bilateral_sigmaColor = self.bilateral_sigmaColor,
-                                                         bilateral_sigmaSpace = self.bilateral_sigmaSpace, 
-                                                         sharp_kernel_value = self.sharp_kernel_value, 
-                                                         inflate_flag = self.inflate_flag, 
-                                                         gamma = self.gamma, 
-                                                         window_size_list = self.window_size_list, 
-                                                         C = self.C,  
-                                                         ensemble_flag = self.ensemble_flag)
+        img_processed = extractor.preprocessing(img, 
+                                                self.upper_lim_pix_val, self.lower_lim_pix_val, 
+                                                flip_flag = self.flip_flag, 
+                                                clipLimit = self.clipLimit,
+                                                tileGridSize = (self.tileGridSize, self.tileGridSize), 
+                                                blur_kernel_size = (self.blur_kernel_size, self.blur_kernel_size), 
+                                                bilateral_d = self.bilateral_d,
+                                                bilateral_sigmaColor = self.bilateral_sigmaColor,
+                                                bilateral_sigmaSpace = self.bilateral_sigmaSpace, 
+                                                sharp_kernel_value = self.sharp_kernel_value, 
+                                                inflate_flag = self.inflate_flag, 
+                                                gamma = self.gamma, 
+                                                window_size_list = self.window_size_list, 
+                                                C = self.C,  
+                                                ensemble_flag = self.ensemble_flag)
         
-        modules_contours = contours_extractor.select_contours_and_minAreaRect(img_processed, 
-                                                                              area_min=self.area_min,
-                                                                              area_max=self.area_max, 
-                                                                              aspect_min=self.aspect_min,
-                                                                              aspect_max=self.aspect_max)
+        modules_contours = extractor.select_contours_and_minAreaRect(img_processed, 
+                                                                     area_min=self.area_min,
+                                                                     area_max=self.area_max, 
+                                                                     aspect_min=self.aspect_min,
+                                                                     aspect_max=self.aspect_max)
         return modules_contours
 
 class Modules():
