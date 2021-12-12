@@ -34,7 +34,7 @@ color_list = {
 
 ## Source codes
 - images (分析対象の画像データ)
-  - ortho/*
+  - ortho/
     - 分析用のオルソ画像をここに置いてください
 - notebooks (実行用のノートブック)
   - test_module_extraction.ipynb
@@ -54,7 +54,7 @@ color_list = {
     - その他細々としたプログラムを纏めたもの
 - lib (外部ライブラリ)
   - contours_extractor.py
-    - モジュール検出用のライブラリ（白石コード）
+    - モジュール検出用のライブラリ（白石コードに対応するもの）
   - xmeans.py
     - X-meansの外部ライブラリ（テスト用に実装したもので、実際には使用しておりません）
   - star_clustering.py
@@ -66,5 +66,44 @@ color_list = {
 - old（不要コードの置き場）
 
 ## Parameters
-### 異常検知 (anomaly_detection.py) における各種パラメータの説明
-- 
+異常検知 (anomaly_detection.py) における各種パラメータの説明</br>
+
+### HotspotDetectors
+ホットスポットの検出</br>
+- gamma
+  - (default: 1.5)
+- alpha_lof
+  - (default: -1.6)
+- beta_lof
+  - (default: 0.5)
+- alpha_isof
+  - (default: -0.6)
+- beta_isof
+  - (default: 0.2)
+ 
+### AnomalyTypeClassifier
+ホットスポットの形状分析</br>
+- min_hotspot_size
+  - (default: 4)
+- min_circularity
+  - (default: 0.25)
+- min_waveness_shape_factor
+  - (default: 0.7)
+
+異常タイプの分類</br>
+- min_module_anomaly_size
+  - (default: 0.5)
+- min_cluster_anomaly_size
+  - (default: 0.25)
+- gamma
+  - (default: 3.0)
+- min_zscore
+  - (default: 3.0)
+- junction_box_offset_long
+  - (default: 0.2)
+- junction_box_offset_short
+  - (default: 0.3)
+- junction_box_offset_count
+  - (default: 12)
+- cluster_anomaly_offset
+  - (default: 0.1)
