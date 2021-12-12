@@ -153,7 +153,7 @@ class AnoModels():
         self.lof = {}; self.lof_gamma = {}
         self.isof = {}; self.isof_gamma = {}
 
-    def get_offset(self,thermal_data,module_labels):
+    def get_offset(self,thermal_data,module_labels,show=False):
         x = np.array(
             #[ thermal_data[c].all_temperature.mean() for c in range(0,max(module_labels)+1) ]
             #[ np.median(thermal_data[c].all_temperature) for c in range(0,max(module_labels)+1) ]
@@ -165,19 +165,23 @@ class AnoModels():
         z = mscaler.fit_transform(x)
         offset = z / max(z)
         #offset = np.zeros(len(x))
-        #fig = plt.figure(fac]ecolor="w")
-        #plt.scatter(x,offset)
-        #plt.show()
+        if show:
+            fig = plt.figure(facecolor="w")
+            plt.scatter(x,offset)
+            plt.show()
         return offset
         
     def fit(self,thermal_data,module_labels):
-        self.offset = self.get_offset(thermal_data,module_labels)
+        self.offset = self.get_offset(thermal_data,module_labels,show=False)
         for c in tqdm(range(0,max(module_labels)+1)):
             # -- temperatures -- 
-            n_modules = 100
+            #n_modules = 100
+            n_modules = len(thermal_data[c].temperature)
             all_temperature = thermal_data[c].all_temperature
             clusters_temperature = thermal_data[c].clusters_temperature
             #min_threshold = np.quantile(clusters_temperature,0.1)
+            #max_threshold = np.quantile(clusters_temperature,0.9)
+            #indices = (clusters_temperature > min_threshold) & (clusters_temperature < max_threshold)
             # -- Zscaler --
             self.zscaler[c] = preprocessing.RobustScaler().fit(
                 utils.gamma_correction(all_temperature, gamma=self.gamma)
@@ -185,7 +189,7 @@ class AnoModels():
             # -- Local Outlier Factor --
             lof = LocalOutlierFactor(n_neighbors=n_modules, contamination="auto", novelty=True)
             self.lof[c] = lof.fit(clusters_temperature)
-            #self.lof[c] = lof.fit(clusters_temperature[clusters_temperature > min_threshold].reshape(-1,3))
+            #self.lof[c] = lof.fit(clusters_temperature[indices].reshape(-1,3))
             self.lof[c].offset_ = -1.6 - 0.5 * self.offset[c] # default: -1.5
             #lof_gamma = LocalOutlierFactor(n_neighbors=n_modules, contamination="auto", novelty=True)
             #self.lof_gamma[c] = lof_gamma.fit(
@@ -195,7 +199,7 @@ class AnoModels():
             # -- Isolation Forest --
             isof = IsolationForest(contamination="auto")
             self.isof[c] = isof.fit(clusters_temperature)
-            #self.isof[c] = isof.fit(clusters_temperature[clusters_temperature > min_threshold].reshape(-1,3))
+            #self.isof[c] = isof.fit(clusters_temperature[indices].reshape(-1,3))
             self.isof[c].offset_ = -0.6 - 0.2 * self.offset[c] # default: -0.5
             #isof_gamma = IsolationForest(contamination="auto")            
             #self.isof_gamma[c] = isof_gamma.fit(
