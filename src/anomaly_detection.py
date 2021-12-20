@@ -1,5 +1,7 @@
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
+import seaborn as sns
 import cv2
 from scipy.spatial.distance import pdist
 from scipy.cluster.hierarchy import dendrogram, linkage, fcluster
@@ -60,21 +62,27 @@ class HotspotDetectors():
             self.isof[c] = isof.fit(clusters_temperature)
             self.isof[c].offset_ = self.alpha_isof - self.beta_isof * self.correction_term[c] # default: -0.5
 
-    def check_pred_labels(self, thermal_data, module_labels, model1, model2):
+    def check_pred_labels(self, thermal_data, module_labels, detectors):
         cmap = plt.get_cmap("tab20")
+        get_label = lambda x: 'Outlier' if x == -1 else 'Inlier'
         for c in range(0,max(module_labels)+1):
-            print("array offset:", c, thermal_data[c].all_temperature.mean(), model1[c].offset_, model2[c].offset_)
+        #for c in range(0,2):            
+            print("array: {} / temperature: {} / offsets: {} {}".format(
+                c, thermal_data[c].all_temperature.mean(),detectors.lof[c].offset_, detectors.isof[c].offset_))
             fig = plt.figure(facecolor="w", figsize=(12,4))
             ax1 = fig.add_subplot(1,2,1)
             ax2 = fig.add_subplot(1,2,2)
-            X1 = thermal_data[c].clusters_temperature
-            X2 = thermal_data[c].clusters_temperature
-            pred1 = model1[c].predict(X1)
-            pred2 = model2[c].predict(X2)
-            ax1.set_title("model1")
-            ax2.set_title("model2")
-            ax1.scatter(X1[:, 0], X1[:, 1], color=cmap(pred1+1))
-            ax2.scatter(X2[:, 0], X2[:, 1], color=cmap(pred2+1))
+            X = thermal_data[c].clusters_temperature
+            label1 = list(map(get_label,detectors.lof[c].predict(X)))
+            label2 = list(map(get_label,detectors.isof[c].predict(X)))
+            df1 = pd.DataFrame({"Temperature":X.mean(axis=1),"label":label1})
+            df2 = pd.DataFrame({"Temperature":X.mean(axis=1),"label":label2})
+            ax1.set_title("Local Outlier Factor")
+            ax2.set_title("Isolation Forest")
+            sns.boxplot(x=[""]*len(X), y="Temperature", data=df1, ax=ax1, palette="pastel")
+            sns.swarmplot(x=[""]*len(X), y="Temperature", hue="label", data=df1, ax=ax1)
+            sns.boxplot(x=[""]*len(X), y="Temperature", data=df2, ax=ax2, palette="pastel")
+            sns.swarmplot(x=[""]*len(X), y="Temperature", hue="label", data=df2, ax=ax2)            
             plt.show()            
 
 class AnomalyTypeClassifier():
@@ -86,7 +94,7 @@ class AnomalyTypeClassifier():
         self.min_waveness_shape_factor = 0.7
         # -- anomaly type features --
         self.min_module_anomaly_ratio = 0.5
-        self.min_cluster_anomaly_ratio = 0.25
+        self.min_cluster_anomaly_ratio = 0.2
         # -- RobustZscore --
         self.gamma = 3.0
         self.min_zscore = 3.0        
@@ -95,7 +103,7 @@ class AnomalyTypeClassifier():
         self.junction_box_offset_short = 0.3
         self.junction_box_offset_count = 12
         # -- cluster anomaly --
-        self.cluster_anomaly_offset = 0.1
+        self.cluster_anomaly_offset = 0.2
 
     def get_clusters_temperature(self, clusters, temperature):
         sliced_data = clusters.get_clusters_data(temperature)
@@ -208,9 +216,10 @@ class AnomalyTypeClassifier():
         hot_counts = self.get_hot_counts(hot_pixels, clusters)
         flag_cluster_anomaly = self.get_flag_cluster_anomaly(hot_pixels)
         flag_junction_box_error = self.get_flag_junction_box_error(hot_pixels)
-        if hot_pixels.mean() >= self.min_module_anomaly_ratio:
+        hot_ratio = hot_pixels.mean()
+        if hot_ratio >= self.min_module_anomaly_ratio:
             module_type = "Module-Anomaly"        
-        elif flag_cluster_anomaly and hot_pixels.mean() >= self.min_cluster_anomaly_ratio:
+        elif flag_cluster_anomaly and hot_ratio >= self.min_cluster_anomaly_ratio:
             module_type = "Cluster-Anomaly"
         elif flag_junction_box_error and hot_counts > 0:
             module_type = "Junction-Box-Error"
