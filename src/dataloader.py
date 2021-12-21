@@ -1,3 +1,4 @@
+import re
 import cv2
 import glob
 import os
@@ -9,9 +10,16 @@ from sklearn import preprocessing
 from clustering import TemperatureClusters
 
 # -- data utilities --
+def atoi(text):
+    return int(text) if text.isdigit() else text
+
+def natural_keys(text):
+    return [ atoi(c) for c in re.split(r'(\d+)', text) ]
+
 def get_img_files(dir_path="./images/modules", gray=False):
     img_files = {}
-    for filepath in glob.glob(dir_path + "/*.jpg"):
+    #for filepath in glob.glob(dir_path + "/*.jpg"):
+    for filepath in sorted(glob.glob(dir_path + "/*.jpg"), key=natural_keys):
         filename = os.path.basename(filepath) 
         img = cv2.imread(filepath)
         if gray:

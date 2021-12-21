@@ -5,7 +5,6 @@ import pandas as pd
 import cv2
 import matplotlib
 import matplotlib.pyplot as plt
-import glob
 import json
 from sklearn.cluster import KMeans, DBSCAN
 import sys
@@ -20,8 +19,11 @@ def plot_module_map_with_labels(img, module_contours, module_labels):
     module_centers = np.array( [c.mean(axis=0) for c in module_contours] )
     for i in range(-1,max(module_labels)+1):
         data = module_centers[module_labels == i]
-        plt.scatter(data[:, 0], data[:, 1], color=colors[i][1], label=str(i))
-    ax.legend(loc='upper left')
+        #plt.scatter(data[:, 0], data[:, 1], color=colors[i][1], label=str(i))
+        if len(data) > 0:
+            plt.scatter(data[:, 0], data[:, 1], color=colors[i][1])
+            plt.annotate(str(i), (np.mean(data[:, 0]), np.mean(data[:, 1])), color="black", fontsize=18)
+    #ax.legend(loc='upper left')
     ax.set_xlim([0, img.shape[1]])
     ax.set_ylim([img.shape[0], 0])
     plt.show()

@@ -19,9 +19,6 @@ class HotspotDetectors():
         # -- temperature dependent correction --
         self.min_correction = -0.2
         self.max_correction = 1.0
-        # -- RobustZscore --
-        self.zscaler = {}
-        self.gamma = 1.5
         # -- LocalOutlierFactor --
         self.lof = {}
         self.alpha_lof = -1.6; self.beta_lof = 0.5
@@ -49,18 +46,16 @@ class HotspotDetectors():
             n_modules = len(thermal_data[c].temperature)
             all_temperature = thermal_data[c].all_temperature
             clusters_temperature = thermal_data[c].clusters_temperature
-            # -- Zscaler --
-            self.zscaler[c] = preprocessing.RobustScaler().fit(
-                utils.gamma_correction(all_temperature, gamma=self.gamma)
-            )
             # -- Local Outlier Factor --
             lof = LocalOutlierFactor(n_neighbors=n_modules, contamination="auto", novelty=True)
             self.lof[c] = lof.fit(clusters_temperature)
-            self.lof[c].offset_ = self.alpha_lof - self.beta_lof * self.correction_term[c] # default: -1.5
+            #self.lof[c].offset_ = self.alpha_lof - self.beta_lof * self.correction_term[c] # default: -1.5
+            self.lof[c].offset_ = -4.0
             # -- Isolation Forest --
             isof = IsolationForest(contamination="auto")
             self.isof[c] = isof.fit(clusters_temperature)
-            self.isof[c].offset_ = self.alpha_isof - self.beta_isof * self.correction_term[c] # default: -0.5
+            #self.isof[c].offset_ = self.alpha_isof - self.beta_isof * self.correction_term[c] # default: -0.5
+            self.isof[c].offset_ = -0.75
 
     def check_pred_labels(self, thermal_data, module_labels, detectors):
         cmap = plt.get_cmap("tab20")
@@ -73,16 +68,16 @@ class HotspotDetectors():
             ax1 = fig.add_subplot(1,2,1)
             ax2 = fig.add_subplot(1,2,2)
             X = thermal_data[c].clusters_temperature
-            label1 = list(map(get_label,detectors.lof[c].predict(X)))
-            label2 = list(map(get_label,detectors.isof[c].predict(X)))
+            label1 = list(map(get_label, detectors.lof[c].predict(X)))
+            label2 = list(map(get_label, detectors.isof[c].predict(X)))
             df1 = pd.DataFrame({"Temperature":X.mean(axis=1),"label":label1})
             df2 = pd.DataFrame({"Temperature":X.mean(axis=1),"label":label2})
             ax1.set_title("Local Outlier Factor")
             ax2.set_title("Isolation Forest")
             sns.boxplot(x=[""]*len(X), y="Temperature", data=df1, ax=ax1, palette="pastel")
-            sns.swarmplot(x=[""]*len(X), y="Temperature", hue="label", data=df1, ax=ax1)
+            sns.swarmplot(x=[""]*len(X), y="Temperature", hue="label", hue_order=["Inlier", "Outlier"], data=df1, ax=ax1)
             sns.boxplot(x=[""]*len(X), y="Temperature", data=df2, ax=ax2, palette="pastel")
-            sns.swarmplot(x=[""]*len(X), y="Temperature", hue="label", data=df2, ax=ax2)            
+            sns.swarmplot(x=[""]*len(X), y="Temperature", hue="label", hue_order=["Inlier", "Outlier"], data=df2, ax=ax2)            
             plt.show()            
 
 class AnomalyTypeClassifier():
@@ -96,7 +91,7 @@ class AnomalyTypeClassifier():
         self.min_module_anomaly_ratio = 0.5
         self.min_cluster_anomaly_ratio = 0.2
         # -- RobustZscore --
-        self.gamma = 3.0
+        self.gamma = 1.5
         self.min_zscore = 3.0        
         # -- junction box error -
         self.junction_box_offset_long = 0.2
