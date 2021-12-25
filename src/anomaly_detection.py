@@ -16,30 +16,17 @@ import utils
 
 class HotspotDetectors():
     def __init__(self):
-        # -- temperature dependent correction --
-        self.min_correction = -0.2
-        self.max_correction = 1.0
         # -- LocalOutlierFactor --
         self.lof = {}
-        self.alpha_lof = -1.6; self.beta_lof = 0.5
+        self.offset_lof = -4.0
         # -- IsolationForest --
         self.isof = {}
-        self.alpha_isof = -0.6; self.beta_isof = 0.2
-
-    def get_temperature_depentent_correction(self, thermal_data, module_labels, show=False):
-        x = np.array(
-            [ trim_mean(thermal_data[c].all_temperature,0.2) for c in range(0,max(module_labels)+1) ]
-        ).reshape(-1,1)
-        mscaler = MinMaxScaler([self.min_correction, self.max_correction])
-        correction_term = mscaler.fit_transform(x)
-        if show:
-            fig = plt.figure(facecolor="w")
-            plt.scatter(x, correction_term)
-            plt.show()
-        return correction_term
+        self.offset_isof = -0.75
+        # -- RobustZscore --
+        self.gamma = 3.0
+        self.min_zscore = 4.0
         
     def fit(self, thermal_data, module_labels):
-        self.correction_term = self.get_temperature_depentent_correction(thermal_data, module_labels, show=False)
         for c in tqdm(range(0,max(module_labels)+1)):
             # -- temperatures -- 
             #n_modules = 100
@@ -49,19 +36,16 @@ class HotspotDetectors():
             # -- Local Outlier Factor --
             lof = LocalOutlierFactor(n_neighbors=n_modules, contamination="auto", novelty=True)
             self.lof[c] = lof.fit(clusters_temperature)
-            #self.lof[c].offset_ = self.alpha_lof - self.beta_lof * self.correction_term[c] # default: -1.5
-            self.lof[c].offset_ = -4.0
+            self.lof[c].offset_ = self.offset_lof # default: -1.5
             # -- Isolation Forest --
             isof = IsolationForest(contamination="auto")
             self.isof[c] = isof.fit(clusters_temperature)
-            #self.isof[c].offset_ = self.alpha_isof - self.beta_isof * self.correction_term[c] # default: -0.5
-            self.isof[c].offset_ = -0.75
+            self.isof[c].offset_ = self.offset_isof # default: -0.5
 
     def check_pred_labels(self, thermal_data, module_labels, detectors):
         cmap = plt.get_cmap("tab20")
         get_label = lambda x: 'Outlier' if x == -1 else 'Inlier'
         for c in range(0,max(module_labels)+1):
-        #for c in range(0,2):            
             print("array: {} / temperature: {} / offsets: {} {}".format(
                 c, thermal_data[c].all_temperature.mean(),detectors.lof[c].offset_, detectors.isof[c].offset_))
             fig = plt.figure(facecolor="w", figsize=(12,4))
@@ -87,18 +71,18 @@ class AnomalyTypeClassifier():
         self.min_hotspot_size = 4
         self.min_circularity = 0.25
         self.min_waveness_shape_factor = 0.7
-        # -- anomaly type features --
+        # -- module anomaly --
         self.min_module_anomaly_ratio = 0.5
+        # -- cluster anomaly --
         self.min_cluster_anomaly_ratio = 0.2
-        # -- RobustZscore --
-        self.gamma = 1.5
-        self.min_zscore = 3.0        
+        self.cluster_anomaly_offset = 0.2
         # -- junction box error -
         self.junction_box_offset_long = 0.2
         self.junction_box_offset_short = 0.3
         self.junction_box_offset_count = 12
-        # -- cluster anomaly --
-        self.cluster_anomaly_offset = 0.2
+        # -- RobustZscore --
+        self.gamma = detectors.gamma
+        self.min_zscore = detectors.min_zscore
 
     def get_clusters_temperature(self, clusters, temperature):
         sliced_data = clusters.get_clusters_data(temperature)
@@ -109,6 +93,8 @@ class AnomalyTypeClassifier():
             self, clusters_temperature, img_file, clusters, threshold=3.0, log=False):
         # -- hot cluster --
         hot_clusters = (clusters_temperature.mean(axis=1) > threshold)
+        print(clusters_temperature.mean(axis=1))
+        print(threshold)
         # -- hot pixel --
         hot_pixels = np.array([1 if c in np.where(hot_clusters==True)[0] else 0 for c in clusters.labels]) 
         hot_pixels = hot_pixels.reshape(*img_file.shape[:2],1)    
@@ -123,8 +109,8 @@ class AnomalyTypeClassifier():
         # -- hot cluster --
         hot_clusters = (model.predict(clusters_temperature) < 0) \
             & (transformed_clusters_temperature.mean(axis=1) > 0)
-        #print(model.score_samples(clusters_temperature))
-        #print(model.offset_)
+        print(model.score_samples(clusters_temperature))
+        print(model.offset_)
         # -- hot pixel --
         hot_pixels = np.array([1 if c in np.where(hot_clusters==True)[0] else 0 for c in clusters.labels])    
         hot_pixels = hot_pixels.reshape(*img_file.shape[:2],1) 
@@ -192,7 +178,7 @@ class AnomalyTypeClassifier():
             peri_cnv = cv2.arcLength(cv2.convexHull(cnt), True)
             circularity = 4 * np.pi * area / peri**2 if peri > 0 else 0 
             waveness_shape_factor = peri_cnv / peri if peri > 0 else 0
-            #print(area, peri, circularity, waveness_shape_factor)        
+            print(area, peri, circularity, waveness_shape_factor)        
             if area < self.min_hotspot_size: # remove small clusters
                 #cv2.drawContours(gray, cnt, -1, color=(0,0,0), thickness=-1)            
                 cv2.drawContours(gray, [box], -1, color=(0,0,0), thickness=1)
@@ -263,8 +249,6 @@ class AnomalyTypeClassifier():
                 clusters_temperature = self.get_clusters_temperature(clusters, temperature)
                 scaled_clusters_temperature = self.get_clusters_temperature(clusters, scaled_temperature)
                 # -- hot spot detection --    
-                #hot_pixels_group = self.get_hotspots_by_zscore(
-                #    clusters_temperature, thermal_img_file, clusters, threshold=self.min_zscore, log=False)          
                 hot_pixels_module = self.get_hotspots_by_zscore(
                     scaled_clusters_temperature, thermal_img_file, clusters, threshold=self.min_zscore, log=False)   
                 hot_pixels_lof = self.get_hotspots_by_models(

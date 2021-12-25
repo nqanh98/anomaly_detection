@@ -79,21 +79,28 @@ color_list = {
 異常検知 (anomaly_detection.py) における各種パラメータの説明</br>
 
 ### HotspotDetectors
-ホットスポットの検出</br>
+
+#### LocalOutlierFactorモデルに関するパラメータ
+- offset_lof
+  - LocalOutlierFactorモデルの閾値(default: -4.0)
+  - 小さくするほどホットスポットの検出力が上がるが誤検出も増える
+
+#### IsolationForestモデルに関するパラメータ
+- offset_isof
+  - IsolationForestモデルの閾値(default: -0.75)
+  - 小さくするほどホットスポットの検出力が上がるが誤検出も増える
+
+#### RobustZscoreモデルに関するパラメータ
 - gamma
-  - グループ単位のzスコアによるホットスポット検出モデルにおけるガンマ補正の係数(default: 1.5)
-  - （グループ単位のzスコアによるホットスポット検出モデルは、現状は使用しておりません）
-- alpha_lof
-  - Local Outlier Factorモデルにおける温度補正項のパラメータその１(default: -1.6)
-- beta_lof
-  - Local Outlier Factorモデルにおける温度補正項のパラメータその２(default: 0.5)
-- alpha_isof
-  - Isolation Forestモデルにおける温度補正項のパラメータその１(default: -0.6)
-- beta_isof
-  - Isolation Forestモデルにおける温度補正項のパラメータその２(default: 0.2)
- 
+  - モジュール単位のzスコアにおけるガンマ補正の係数(default: 3.0)
+  - 大きくするほど高温領域を協調することが可能だが誤検出も増える
+- min_zscore
+  - モジュール単位のzスコアにおいて異常と判定するzスコアの閾値　
+  - この値以上よりも大きいzスコアを持つクラスタをホットスポットと判定する(default: 4.0)
+
 ### AnomalyTypeClassifier
-ホットスポットの形状分析</br>
+
+#### ホットスポットの形状分析に関するパラメータ
 - min_hotspot_size
   - ホットスポットの最小サイズ
   - これ以下のクラスタはホットスポットから除外する(default: 4)
@@ -104,21 +111,20 @@ color_list = {
   - ホットスポットの最小wavensss shape factor
   - これ以下のクラスタはホットスポットから除外する(default: 0.7)
 
-異常タイプの分類</br>
-- gamma
-  - モジュール単位のzスコアにおけるガンマ補正の係数(default: 3.0)
-- min_zscore
-  - モジュール単位のzスコアにおいて異常と判定するzスコアの閾値　
-  - この値異常となるクラスタをホットスポットと判定する(default: 3.0)
+#### モジュール異常判定に関するパラメータ
 - min_module_anomaly_ratio
   - モジュール異常に関する閾値
   - モジュールにおけるホットスポットの割合がこの値以上の時、モジュール異常と判定される(default: 0.5)
+
+#### クラスタ異常判定に関するパラメータ
 - min_cluster_anomaly_ratio
   - クラスタ異常に関する閾値その１
   - モジュールにおけるホットスポットの割合がこの値以上かつ長軸方向へ縦長のホットスポットの時、クラスタ異常と判定される(default: 0.2)
 - cluster_anomaly_offset
   - クラスタ異常に関する閾値その２
-  - クラスタ異常とみなす長さの指定に関係する(default: 0.2)  
+  - クラスタ異常とみなす長さの指定に関係する(default: 0.2)
+
+#### ジャンクションボックス異常判定に関するパラメータ
 - junction_box_offset_long
   - ジャンクションボックス異常に関する閾値その１
   - 長軸方向のジャンクションボックス領域に関係する(default: 0.2)
@@ -127,4 +133,4 @@ color_list = {
   - 短軸方向のジャンクションボックス領域に関係する(default: 0.3)
 - junction_box_offset_count
   - ジャンクションボックス異常に関する閾値その３
-  - ジャンクションボックス領域からはみ出たものをどれくらい許容するかを指定する（default: 12)
+  - ジャンクションボックス領域からはみ出た点をどれくらい許容するかを指定する（default: 12)
