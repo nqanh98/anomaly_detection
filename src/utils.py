@@ -9,7 +9,7 @@ def gamma_correction(x, gamma=1, x_max=None):
         x_max = x_max
     return np.clip(pow(x / x_max, gamma) * 255.0, 0, 255).astype(int)
 
-def show_img(img_dict, vmin=0, vmax=255, cmap=None, figsize=(12,4)):
+def show_img(img_dict, output_file_path=None, vmin=0, vmax=255, cmap=None, figsize=(12,4)):
     fig = plt.figure(figsize=figsize,facecolor="w")
     n = len(img_dict)
     ax = {}
@@ -20,6 +20,9 @@ def show_img(img_dict, vmin=0, vmax=255, cmap=None, figsize=(12,4)):
         else:
             ax[i].imshow(v, vmin=vmin, vmax=vmax)
         ax[i].set_title(k)
+    if output_file_path is not None:
+        print(output_file_path)        
+        plt.savefig(output_file_path)
     plt.show()
 
 def get_rect_info(rect):

@@ -1,3 +1,5 @@
+import shutil
+import os
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -42,27 +44,36 @@ class HotspotDetectors():
             self.isof[c] = isof.fit(clusters_temperature)
             self.isof[c].offset_ = self.offset_isof # default: -0.5
 
-    def check_pred_labels(self, thermal_data, module_labels, detectors):
+    def check_pred_labels(self, thermal_data, module_labels, output_dir_path):
+        # -- makedirs --
+        output_dir_path = output_dir_path+"/swarmplot/"
+        os.makedirs(output_dir_path,exist_ok=True)
+        shutil.rmtree(output_dir_path)
+        os.makedirs(output_dir_path,exist_ok=True)
+        # -- 
         cmap = plt.get_cmap("tab20")
         get_label = lambda x: 'Outlier' if x == -1 else 'Inlier'
         for c in range(0,max(module_labels)+1):
             print("array: {} / temperature: {} / offsets: {} {}".format(
-                c, thermal_data[c].all_temperature.mean(),detectors.lof[c].offset_, detectors.isof[c].offset_))
+                c, thermal_data[c].all_temperature.mean(), self.lof[c].offset_, self.isof[c].offset_))
+            # -- predictions --
+            X = thermal_data[c].clusters_temperature
+            label1 = list(map(get_label, self.lof[c].predict(X)))
+            label2 = list(map(get_label, self.isof[c].predict(X)))
+            df1 = pd.DataFrame({"Temperature":X.mean(axis=1),"label":label1})
+            df2 = pd.DataFrame({"Temperature":X.mean(axis=1),"label":label2})
+            # -- plots --
             fig = plt.figure(facecolor="w", figsize=(12,4))
             ax1 = fig.add_subplot(1,2,1)
             ax2 = fig.add_subplot(1,2,2)
-            X = thermal_data[c].clusters_temperature
-            label1 = list(map(get_label, detectors.lof[c].predict(X)))
-            label2 = list(map(get_label, detectors.isof[c].predict(X)))
-            df1 = pd.DataFrame({"Temperature":X.mean(axis=1),"label":label1})
-            df2 = pd.DataFrame({"Temperature":X.mean(axis=1),"label":label2})
             ax1.set_title("Local Outlier Factor")
             ax2.set_title("Isolation Forest")
             sns.boxplot(x=[""]*len(X), y="Temperature", data=df1, ax=ax1, palette="pastel")
             sns.swarmplot(x=[""]*len(X), y="Temperature", hue="label", hue_order=["Inlier", "Outlier"], data=df1, ax=ax1)
             sns.boxplot(x=[""]*len(X), y="Temperature", data=df2, ax=ax2, palette="pastel")
-            sns.swarmplot(x=[""]*len(X), y="Temperature", hue="label", hue_order=["Inlier", "Outlier"], data=df2, ax=ax2)            
-            plt.show()            
+            sns.swarmplot(x=[""]*len(X), y="Temperature", hue="label", hue_order=["Inlier", "Outlier"], data=df2, ax=ax2)
+            plt.savefig(output_dir_path+str(c)+".jpg")            
+            plt.show()
 
 class AnomalyTypeClassifier():
     def __init__(self, detectors):
@@ -93,8 +104,8 @@ class AnomalyTypeClassifier():
             self, clusters_temperature, img_file, clusters, threshold=3.0, log=False):
         # -- hot cluster --
         hot_clusters = (clusters_temperature.mean(axis=1) > threshold)
-        print(clusters_temperature.mean(axis=1))
-        print(threshold)
+        #print(clusters_temperature.mean(axis=1))
+        #print(threshold)
         # -- hot pixel --
         hot_pixels = np.array([1 if c in np.where(hot_clusters==True)[0] else 0 for c in clusters.labels]) 
         hot_pixels = hot_pixels.reshape(*img_file.shape[:2],1)    
@@ -109,8 +120,8 @@ class AnomalyTypeClassifier():
         # -- hot cluster --
         hot_clusters = (model.predict(clusters_temperature) < 0) \
             & (transformed_clusters_temperature.mean(axis=1) > 0)
-        print(model.score_samples(clusters_temperature))
-        print(model.offset_)
+        #print(model.score_samples(clusters_temperature))
+        #print(model.offset_)
         # -- hot pixel --
         hot_pixels = np.array([1 if c in np.where(hot_clusters==True)[0] else 0 for c in clusters.labels])    
         hot_pixels = hot_pixels.reshape(*img_file.shape[:2],1) 
@@ -178,7 +189,7 @@ class AnomalyTypeClassifier():
             peri_cnv = cv2.arcLength(cv2.convexHull(cnt), True)
             circularity = 4 * np.pi * area / peri**2 if peri > 0 else 0 
             waveness_shape_factor = peri_cnv / peri if peri > 0 else 0
-            print(area, peri, circularity, waveness_shape_factor)        
+            #print(area, peri, circularity, waveness_shape_factor)        
             if area < self.min_hotspot_size: # remove small clusters
                 #cv2.drawContours(gray, cnt, -1, color=(0,0,0), thickness=-1)            
                 cv2.drawContours(gray, [box], -1, color=(0,0,0), thickness=1)
@@ -212,8 +223,9 @@ class AnomalyTypeClassifier():
             module_type = "Normal"
         return module_type    
 
-    def display_hotspots(self, thermal_img_file, clusters, clusters_temperature, module_type,
-                         hot_pixels, hot_pixels_module, hot_pixels_lof, hot_pixels_isof):
+    def display_hotspots(self, k, thermal_img_file, clusters, clusters_temperature, module_type,
+                         hot_pixels, hot_pixels_module, hot_pixels_lof, hot_pixels_isof, output_dir_path):
+        # -- images --
         img_clustered = clusters_temperature[clusters.labels].reshape(thermal_img_file.shape)
         img_hotspots = img_clustered * hot_pixels
         img_hotspots_module = img_clustered * hot_pixels_module
@@ -227,10 +239,16 @@ class AnomalyTypeClassifier():
                 "module": img_hotspots_module,
                 "lof": img_hotspots_lof,
                 "isof": img_hotspots_isof,
-            })  
+            },output_file_path=output_dir_path+str(k))
 
     def run(self, thermal_img_files, thermal_data, module_labels, 
-            input_dir_path, list_target_modules = None):
+            output_dir_path, list_target_modules = None):
+        # -- makedirs --
+        output_dir_path = output_dir_path+"/hotspots/"
+        os.makedirs(output_dir_path,exist_ok=True)
+        shutil.rmtree(output_dir_path)
+        os.makedirs(output_dir_path,exist_ok=True)
+        # -- run --
         anomaly_modules = {}
         for n, k in enumerate(list(thermal_img_files)):    
             # -- module label --
@@ -268,7 +286,7 @@ class AnomalyTypeClassifier():
                 else:
                     anomaly_modules[module_type].append(k)
                 # -- display -- 
-                self.display_hotspots(thermal_img_file, clusters, clusters_temperature, module_type,
-                                      hot_pixels, hot_pixels_module, hot_pixels_lof, hot_pixels_isof)
+                self.display_hotspots(k, thermal_img_file, clusters, clusters_temperature, module_type,
+                                      hot_pixels, hot_pixels_module, hot_pixels_lof, hot_pixels_isof, output_dir_path)
         return anomaly_modules
         

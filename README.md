@@ -21,9 +21,11 @@ jupyter notebook test_module_extraction.ipynb
 - module_contours.pkl
   - モジュールの輪郭情報
 - module_labels.pkl
-  - モジュールのラベル情報（グループサイズ調整前）
+  - モジュールのグループラベル情報（グループサイズ調整前）
 - module_labels_split.pkl
-  - モジュールのラベル情報（グループサイズ調整後）
+  - モジュールのグループラベル情報（グループサイズ調整後）
+- modules/
+  - モジュール１枚１枚を切り取った画像（ファイル名はモジュール番号と対応する）
 
 ### 異常検知の実行
 モジュール検出の実行後、以下のコマンドを実行してノートブックを起動し、上から順番にプログラムを実行してください</br>
@@ -35,6 +37,10 @@ jupyter notebook test_anomaly_detection.ipynb
   - 異常モジュールに色枠をつけた画像
 - anomaly_modules.json
   - 異常タイプごとにモジュール番号を格納したもの
+- hotspots/
+  - ホットスポットが検出されたモジュール画像（ファイル名はモジュール番号と対応する）
+- swarmplots/
+  - モジュールグループごとの異常検知モデルの出力結果（ファイル名はモジュールグループと対応する）
 
 異常と判定されたモジュールは、以下のルールに基づいて色づけされています</br>
 ```
@@ -108,9 +114,10 @@ color_list = {
   - ホットスポットの最小真円度
   - この値よりも小さい真円度のクラスタはホットスポットから除外する(default: 0.25)
 - min_waveness_shape_factor
-  - ホットスポットの最小
+  - ホットスポットの最小waveness shape factor
   - これ値よりも小さいwavensss shape factorのクラスタはホットスポットから除外する(default: 0.7)
-（備考）パラメータの詳細は[Shape factor](https://en.wikipedia.org/wiki/Shape_factor_(image_analysis_and_microscopy))を参考にすること
+- （備考）
+  - パラメータの詳細は[Shape factor](https://en.wikipedia.org/wiki/Shape_factor_(image_analysis_and_microscopy))を参考にすること
 
 #### モジュール異常判定に関するパラメータ
 - min_module_anomaly_ratio
