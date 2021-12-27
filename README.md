@@ -76,7 +76,7 @@ color_list = {
   - xmeans.py
     - X-meansの外部ライブラリ（テスト用に実装したもので、現状は使用しておりません）
   - star_clustering.py
-    - Start clusteringの外部ライブラリ（テスト用に実装したもので、現状は使用しておりません）
+    - Star clusteringの外部ライブラリ（テスト用に実装したもので、現状は使用しておりません）
 - params (モジュール検出用のパラメータ)
   - upper_lim_pix_val.npy
   - lower_lim_pix_val.npy
